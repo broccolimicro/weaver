@@ -38,6 +38,9 @@ struct Program {
 	int findTerm(int index, Decl proto) const;
 	TypeId findType(int index, vector<string> name) const;
 
+	const Type &typeAt(TypeId idx) const;
+	Type &typeAt(TypeId idx);
+
 	void print();
 };
 

@@ -116,6 +116,14 @@ TypeId Program::findType(int index, vector<string> name) const {
 	return TypeId();
 }
 
+const Type &Program::typeAt(TypeId idx) const {
+	return mods[idx.mod].types[idx.index];
+}
+
+Type &Program::typeAt(TypeId idx) {
+	return mods[idx.mod].types[idx.index];
+}
+
 void Program::print() {
 	for (int i = 0; i < (int)mods.size(); i++) {
 		mods[i].print();

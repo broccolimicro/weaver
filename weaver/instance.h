@@ -21,6 +21,10 @@ struct TypeId {
 
 bool operator==(TypeId t0, TypeId t1);
 bool operator!=(TypeId t0, TypeId t1);
+bool operator<(TypeId t0, TypeId t1);
+bool operator>(TypeId t0, TypeId t1);
+bool operator<=(TypeId t0, TypeId t1);
+bool operator>=(TypeId t0, TypeId t1);
 
 // represents variable declarations, this does not include "connections" for functions
 struct Instance {

@@ -27,6 +27,22 @@ bool operator!=(TypeId t0, TypeId t1) {
 	return t0.mod != t1.mod or t0.index != t1.index;
 }
 
+bool operator<(TypeId t0, TypeId t1) {
+	return t0.mod < t1.mod or (t0.mod == t1.mod and t0.index < t1.index);
+}
+
+bool operator>(TypeId t0, TypeId t1) {
+	return t0.mod > t1.mod or (t0.mod == t1.mod and t0.index > t1.index);
+}
+
+bool operator<=(TypeId t0, TypeId t1) {
+	return t0.mod < t1.mod or (t0.mod == t1.mod and t0.index <= t1.index);
+}
+
+bool operator>=(TypeId t0, TypeId t1) {
+	return t0.mod > t1.mod or (t0.mod == t1.mod and t0.index >= t1.index);
+}
+
 Instance::Instance() {
 }
 
