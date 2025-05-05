@@ -29,8 +29,8 @@ int Module::findType(vector<string> name) const {
 			}
 		}
 	} else {
+		// Qualified names not yet implemented
 		printf("error: unimplemented\n");
-		// function call?
 	}
 	return -1;
 }
@@ -48,11 +48,13 @@ void Module::print() {
 
 Instance SymbolTable::find(string name) const {
 	int i = curr;
-	int index;
-	do {
+	int index = Scope::NOTFOUND;
+	while (index == Scope::NOTFOUND and i >= 0) {
 		index = scope[i].find(name);
-	} while (index == Scope::NOTFOUND and i >= 0);
-
+		if (index == Scope::NOTFOUND) {
+			i = scope[i].parent;
+		}
+	}
 	if (i >= 0 and index >= 0) {
 		return scope[i].tbl[index];
 	}
@@ -73,6 +75,7 @@ int Program::createModule(string name) {
 }
 
 int Program::findTerm(int index, Decl proto) const {
+	// Module-qualified names are indicated by a dot separator (e.g., "mod.func")
 	size_t dot = proto.name.find_first_of(".");
 	if (dot == string::npos) {
 		return -1;
@@ -92,6 +95,9 @@ TypeId Program::findType(int index, vector<string> name) const {
 	if (name.empty()) {
 		return TypeId();
 	} else if (name.size() == 1u) {
+		// For unqualified names, we have a type lookup priority:
+		// 1. First check the global module (for built-in types)
+		// 2. Then check the current module (specified by 'index')
 		TypeId result;
 		if (global >= 0) {
 			result.mod = global;
@@ -106,6 +112,7 @@ TypeId Program::findType(int index, vector<string> name) const {
 		return result;
 	}
 
+	// For qualified names, extract the module and look for the type in that module
 	string modName = name[0];
 	name.erase(name.begin());
 	for (int i = 0; i < (int)mods.size(); i++) {
@@ -135,10 +142,13 @@ void loadGlobalTypes(Program &prgm) {
 		return;
 	}
 	Module glob;
-	glob.types.push_back(Type::interfaceOf("chan"));
-	glob.types.push_back(Type::interfaceOf("fixed"));
-	glob.types.push_back(Type::interfaceOf("ufixed"));
-	glob.types.push_back(Type::interfaceOf("bool"));
+	// The global module contains fundamental interfaces that form
+	// the base of the type system. These are kept in the global scope
+	// so they are accessible from all modules.
+	glob.types.push_back(Type::interfaceOf("chan"));    // Channel interface for communication
+	glob.types.push_back(Type::interfaceOf("fixed"));   // Fixed-point number interface
+	glob.types.push_back(Type::interfaceOf("ufixed"));  // Unsigned fixed-point number interface
+	glob.types.push_back(Type::interfaceOf("bool"));    // Boolean interface
 	prgm.mods.push_back(glob);
 	prgm.global = (int)prgm.mods.size()-1;
 }

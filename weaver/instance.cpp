@@ -64,6 +64,9 @@ void Instance::print() {
 }
 
 bool operator==(const Instance &i0, const Instance &i1) {
+	// Note: We don't compare names - two instances with different names
+	// but the same type and dimensions are considered equal. This is 
+	// semantic equality rather than syntactic equality.
 	if (i0.type != i1.type or i0.size.size() != i1.size.size()) {
 		return false;
 	}
@@ -81,7 +84,7 @@ Decl::Decl() {
 }
 
 Decl::Decl(string name, vector<Instance> args, TypeId ret, TypeId recv) {
- 	this->name = name;
+	this->name = name;
 	this->args = args;
 	this->ret = ret;
 	this->recv = recv;

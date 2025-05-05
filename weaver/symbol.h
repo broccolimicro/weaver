@@ -24,22 +24,34 @@ namespace weaver {
 // implemented by subgraphs I'm currently representing CHP as a petri-net. Primary
 // difference is the flattening of scope.
 
+// Scope represents a single scope level for variable declarations
 struct Scope {
+	Scope();
+	~Scope();
+
 	enum {
-		NOTFOUND=-1
+		NOTFOUND=-1  // Value returned when a symbol is not found
 	};
-	vector<Instance> tbl;
-	int parent;
-	vector<int> child;
+	vector<Instance> tbl;  // Symbol table for this scope
+	int parent;            // Index of the parent scope
+	vector<int> child;     // Indices of child scopes
 
 	int find(string name) const;
 };
 
+// SymbolTable manages the hierarchy of scopes for variable lookup
+// It maintains a tree structure of scopes with parent-child relationships
+// and tracks the "current" scope for variable definitions and lookups
 struct SymbolTable {
-	vector<Scope> scope;
-	int curr;
+	SymbolTable();
+	~SymbolTable();
 
+	vector<Scope> scope;  // All scopes in the hierarchy
+	int curr;             // Index of the current scope
+
+	// Returns false if the name is already defined in the current scope
 	bool define(Instance inst);
+	
 	void pushScope();
 	void popScope();
 	
