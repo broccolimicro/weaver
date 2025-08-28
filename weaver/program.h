@@ -47,9 +47,12 @@ struct Program {
 	vector<Module> mods;  // All modules in the program
 	int global;  // Index of the global module containing built-in types
 
+	int pushModule(string name);
+	int findModule(string name);
+
 	// Creates a new module with the given name
 	// Returns the index of the newly created module
-	int createModule(string name);
+	int getModule(string name);
 
 	// Finds a term across all modules by its prototype declaration
 	// Returns the index of the term, or -1 if not found

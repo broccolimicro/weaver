@@ -68,16 +68,28 @@ Program::Program() {
 Program::~Program() {
 }
 
-int Program::createModule(string name) {
+int Program::pushModule(string name) {
+	mods.push_back(Module());
+	mods.back().name = name;
+	return (int)mods.size()-1;
+}
+
+int Program::findModule(string name) {
 	for (int i = 0; i < (int)mods.size(); i++) {
 		if (mods[i].name == name) {
 			return i;
 		}
 	}
+	return -1;
+}
 
-	mods.push_back(Module());
-	mods.back().name = name;
-	return (int)mods.size()-1;
+int Program::getModule(string name) {
+	int result = findModule(name);
+	if (result < 0) {
+		result = pushModule(name);
+	}
+
+	return result;
 }
 
 int Program::findTerm(int index, Decl proto) const {
