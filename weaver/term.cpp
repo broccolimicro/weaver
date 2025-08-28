@@ -64,6 +64,18 @@ int Term::findDialect(string name) {
 	return Term::NONE;
 }
 
+int Term::getDialect(string name, Dialect::Factory factory) {
+	int result = findDialect(name);
+	if (result != Term::NONE) {
+		return result;
+	}
+	return pushDialect(name, factory);
+}
+
+const Term::Dialect &Term::dialect() const {
+	return Term::dialects[kind];
+}
+
 void Term::print() {
 	// Print term details for debugging
 	printf("term %d ", kind);

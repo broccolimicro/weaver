@@ -59,6 +59,10 @@ struct Term {
 	// Returns the index of the dialect, or NONE if not found
 	static int findDialect(string name);
 
+	static int getDialect(string name, Dialect::Factory factory = nullptr);
+
+	const Dialect &dialect() const;
+
 	// Prints the term details for debugging
 	void print();
 };

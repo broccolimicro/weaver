@@ -69,6 +69,12 @@ Program::~Program() {
 }
 
 int Program::createModule(string name) {
+	for (int i = 0; i < (int)mods.size(); i++) {
+		if (mods[i].name == name) {
+			return i;
+		}
+	}
+
 	mods.push_back(Module());
 	mods.back().name = name;
 	return (int)mods.size()-1;
