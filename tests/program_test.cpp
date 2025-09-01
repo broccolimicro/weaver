@@ -8,8 +8,8 @@ Program createTestProgram() {
     Program prog;
     
     // Create modules
-    int mod1 = prog.createModule("Mod1");
-    int mod2 = prog.createModule("Mod2");
+    int mod1 = prog.getModule("Mod1");
+    int mod2 = prog.getModule("Mod2");
     
     // Add types to Mod1
     Type type1 = Type::typeOf("Type1");
@@ -32,7 +32,7 @@ TEST(ProgramTest, TypeCreation) {
     Program prog;
     
     // Create a module
-    int modIdx = prog.createModule("TestModule");
+    int modIdx = prog.getModule("TestModule");
     
     // Create types
     Type regularType = Type::typeOf("RegularType");
@@ -45,7 +45,7 @@ TEST(ProgramTest, TypeCreation) {
     // Verify types were added correctly
     EXPECT_EQ(typeIdx1, 0);
     EXPECT_EQ(typeIdx2, 1);
-    EXPECT_EQ(prog.mods[modIdx].types.size(), 2);
+    EXPECT_EQ(prog.mods[modIdx].types.size(), 2u);
     EXPECT_EQ(prog.mods[modIdx].types[typeIdx1].name, "RegularType");
     EXPECT_EQ(prog.mods[modIdx].types[typeIdx2].name, "InterfaceType");
     EXPECT_EQ(prog.mods[modIdx].types[typeIdx1].kind, Type::TYPE);
@@ -67,7 +67,7 @@ TEST(ProgramTest, GlobalTypes) {
     
     // Check the global module has the expected types
     Module &globalMod = prog.mods[prog.global];
-    EXPECT_GT(globalMod.types.size(), 0);
+    EXPECT_GT(globalMod.types.size(), 0u);
     
     // Find the expected built-in types
     bool foundChan = false;

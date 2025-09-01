@@ -39,6 +39,7 @@ struct Term {
 
 	// Global registry of all available dialects
 	static vector<Dialect> dialects;
+	vector<TypeId> impl;
 
 	int kind;           // Kind of term (PROCESS, CONTEXT, or a user-defined kind)
 	Decl decl;          // Declaration of the term (name, args, return type, etc.)

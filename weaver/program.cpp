@@ -141,6 +141,31 @@ TypeId Program::findType(int index, vector<string> name) const {
 	return TypeId();
 }
 
+TypeId Program::begin() const {
+	return next(TypeId(0, -1));
+}
+
+TypeId Program::next(TypeId idx) const {
+	idx.index++;
+	if (idx.mod < (int)mods.size()
+		and idx.index >= (int)mods[idx.mod].terms.size()) {
+		idx.mod++;
+		while (idx.mod < (int)mods.size()
+			and mods[idx.mod].terms.empty()) {
+			idx.mod++;
+		}
+		idx.index = 0;
+	}
+	if (idx.mod >= (int)mods.size()) {
+		return TypeId();
+	}
+	return idx;
+}
+
+TypeId Program::end() const {
+	return TypeId();
+}
+
 const Type &Program::typeAt(TypeId idx) const {
 	return mods[idx.mod].types[idx.index];
 }

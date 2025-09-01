@@ -9,7 +9,7 @@ Program createNestedTypesProgram() {
 	Program prog;
 	
 	// Create a module
-	int modIdx = prog.createModule("TestModule");
+	int modIdx = prog.getModule("TestModule");
 	Module &mod = prog.mods[modIdx];
 	
 	// Create a leaf type (no members)

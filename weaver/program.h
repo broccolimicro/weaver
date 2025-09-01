@@ -63,6 +63,10 @@ struct Program {
 	// For qualified names (like "mod.type"), searches in the specified module
 	TypeId findType(int index, vector<string> name) const;
 
+	TypeId begin() const;
+	TypeId next(TypeId idx) const;
+	TypeId end() const;
+
 	// Returns a const reference to the type at the specified TypeId
 	const Type &typeAt(TypeId idx) const;
 	
