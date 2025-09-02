@@ -49,6 +49,28 @@ struct Instance {
 // for equality, only type and dimensions (semantic equality, not syntactic)
 bool operator==(const Instance &i0, const Instance &i1);
 
+// TermId is a reference to a specific term within a specific module
+// Used to uniquely identify a term across the entire program
+struct TermId {
+	TermId();
+	TermId(int mod, int index);
+	~TermId();
+
+	int mod;    // Index of the module containing the term
+	int index;  // Index of the term within the module
+
+	// Checks if this TermId references a valid term
+	bool defined() const;
+};
+
+// Comparison operators for TermId
+bool operator==(TermId t0, TermId t1);
+bool operator!=(TermId t0, TermId t1);
+bool operator<(TermId t0, TermId t1);
+bool operator>(TermId t0, TermId t1);
+bool operator<=(TermId t0, TermId t1);
+bool operator>=(TermId t0, TermId t1);
+
 //     wires, data      devices, behaviors
 // interface -> type, context -> func, struct
 

@@ -29,7 +29,8 @@ struct Module {
 
 	// Finds a term by its prototype declaration
 	// Returns the index of the term, or -1 if not found
-	int findTerm(Decl proto) const;
+	int findTerm(TypeId recv, vector<string> name, vector<TypeId> args) const;
+	vector<int> findTerms(vector<string> name) const;
 	
 	// Finds a type by its name
 	// Returns the index of the type, or -1 if not found
@@ -48,7 +49,7 @@ struct Program {
 	int global;  // Index of the global module containing built-in types
 
 	int pushModule(string name);
-	int findModule(string name);
+	int findModule(string name) const;
 
 	// Creates a new module with the given name
 	// Returns the index of the newly created module
@@ -56,22 +57,36 @@ struct Program {
 
 	// Finds a term across all modules by its prototype declaration
 	// Returns the index of the term, or -1 if not found
-	int findTerm(int index, Decl proto) const;
-	
+	TermId findTerm(int index, TypeId recv, vector<string> name, vector<TypeId> args) const;
+	TermId findTerm(TypeId recv, vector<string> name, vector<TypeId> args) const;
+
+	vector<TermId> findTerms(int index, vector<string> name) const;
+	vector<TermId> findTerms(vector<string> name) const;
+
 	// Finds a type across all modules by its qualified name
 	// First searches in the global module, then in the module at 'index'
 	// For qualified names (like "mod.type"), searches in the specified module
 	TypeId findType(int index, vector<string> name) const;
 
-	TypeId begin() const;
-	TypeId next(TypeId idx) const;
-	TypeId end() const;
+	// Same as above, but there is no current module
+	TypeId findType(vector<string> name) const;
+
+	TermId begin() const;
+	TermId next(TermId idx) const;
+	TermId end() const;
 
 	// Returns a const reference to the type at the specified TypeId
 	const Type &typeAt(TypeId idx) const;
 	
 	// Returns a mutable reference to the type at the specified TypeId
 	Type &typeAt(TypeId idx);
+
+	// Returns a const reference to the term at the specified TermId
+	const Term &termAt(TermId idx) const;
+	
+	// Returns a mutable reference to the term at the specified TermId
+	Term &termAt(TermId idx);
+
 
 	// Prints the program contents for debugging
 	void print();

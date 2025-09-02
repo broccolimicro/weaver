@@ -80,6 +80,47 @@ bool operator==(const Instance &i0, const Instance &i1) {
 	return true;
 }
 
+TermId::TermId() {
+	mod = -1;
+	index = -1;
+}
+
+TermId::TermId(int mod, int index) {
+	this->mod = mod;
+	this->index = index;
+}
+
+TermId::~TermId() {
+}
+
+bool TermId::defined() const {
+	return mod >= 0 and index >= 0;
+}
+
+bool operator==(TermId t0, TermId t1) {
+	return t0.mod == t1.mod and t0.index == t1.index;
+}
+
+bool operator!=(TermId t0, TermId t1) {
+	return t0.mod != t1.mod or t0.index != t1.index;
+}
+
+bool operator<(TermId t0, TermId t1) {
+	return t0.mod < t1.mod or (t0.mod == t1.mod and t0.index < t1.index);
+}
+
+bool operator>(TermId t0, TermId t1) {
+	return t0.mod > t1.mod or (t0.mod == t1.mod and t0.index > t1.index);
+}
+
+bool operator<=(TermId t0, TermId t1) {
+	return t0.mod < t1.mod or (t0.mod == t1.mod and t0.index <= t1.index);
+}
+
+bool operator>=(TermId t0, TermId t1) {
+	return t0.mod > t1.mod or (t0.mod == t1.mod and t0.index >= t1.index);
+}
+
 Decl::Decl() {
 }
 

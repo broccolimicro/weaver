@@ -21,7 +21,7 @@ struct Term {
 	// for different hardware description languages within the same framework.
 	struct Dialect {
 		// Factory function type for creating term implementations from syntax
-		typedef std::any (*Factory)(const parse::syntax*, tokenizer*);
+		typedef std::any (*Factory)(string name, const parse::syntax*, tokenizer*);
 
 		Dialect();
 		Dialect(string name, Factory factory);
@@ -39,7 +39,7 @@ struct Term {
 
 	// Global registry of all available dialects
 	static vector<Dialect> dialects;
-	vector<TypeId> impl;
+	vector<TermId> impl;
 
 	int kind;           // Kind of term (PROCESS, CONTEXT, or a user-defined kind)
 	Decl decl;          // Declaration of the term (name, args, return type, etc.)
@@ -63,6 +63,16 @@ struct Term {
 	static int getDialect(string name, Dialect::Factory factory = nullptr);
 
 	const Dialect &dialect() const;
+
+	template <typename T>
+	T &as() {
+		return std::any_cast<T&>(def);
+	}
+
+	template <typename T>
+	const T &as() const {
+		return std::any_cast<const T&>(def);
+	}
 
 	// Prints the term details for debugging
 	void print();
