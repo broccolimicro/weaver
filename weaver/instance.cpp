@@ -55,7 +55,7 @@ Instance::Instance(TypeId type, string name, vector<int> size) {
 Instance::~Instance() {
 }
 
-void Instance::print() {
+void Instance::print() const {
 	printf("instance (%d,%d) %s {", type.mod, type.index, name.c_str());
 	for (int i = 0; i < (int)size.size(); i++) {
 		printf("%d ", size[i]);
@@ -134,7 +134,7 @@ Decl::Decl(string name, vector<Instance> args, TypeId ret, TypeId recv) {
 Decl::~Decl() {
 }
 
-void Decl::print() {
+void Decl::print() const {
 	printf("decl (%d,%d) %s {\n", recv.mod, recv.index, name.c_str());
 	for (int i = 0; i < (int)args.size(); i++) {
 		args[i].print();

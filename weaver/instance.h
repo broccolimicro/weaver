@@ -42,7 +42,7 @@ struct Instance {
 	vector<int> size; // Array dimensions, if any
 
 	// Prints the instance details for debugging
-	void print();
+	void print() const;
 };
 
 // Equality comparison for instances - note that name is NOT considered
@@ -87,7 +87,7 @@ struct Decl {
 	TypeId ret;            // Return type, or invalid TypeId if none
 
 	// Prints the declaration details for debugging
-	void print();
+	void print() const;
 };
 
 // Equality comparison for declarations

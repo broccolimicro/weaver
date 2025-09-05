@@ -76,7 +76,7 @@ const Term::Dialect &Term::dialect() const {
 	return Term::dialects[kind];
 }
 
-void Term::print() {
+void Term::print() const {
 	// Print term details for debugging
 	printf("term %d ", kind);
 	decl.print();

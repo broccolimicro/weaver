@@ -32,7 +32,7 @@ struct Type {
 	// Creates an interface type that can only have methods (no data members)
 	static Type interfaceOf(string name, vector<Decl> methods=vector<Decl>());
 
-	void print();
+	void print() const;
 };
 
 }

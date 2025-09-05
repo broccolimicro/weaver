@@ -31,7 +31,7 @@ Type Type::interfaceOf(string name, vector<Decl> methods) {
 	return result;
 }
 
-void Type::print() {
+void Type::print() const {
 	// Print type details for debugging
 	printf("type %d %s {\n", kind, name.c_str());
 	// Print all data members

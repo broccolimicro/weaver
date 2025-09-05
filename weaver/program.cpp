@@ -56,7 +56,7 @@ int Module::findType(vector<string> name) const {
 	return -1;
 }
 
-void Module::print() {
+void Module::print() const {
 	printf("module %s {\n", name.c_str());
 	for (int i = 0; i < (int)types.size(); i++) {
 		types[i].print();
@@ -347,7 +347,7 @@ Term &Program::termAt(TermId idx) {
 	return mods[idx.mod].terms[idx.index];
 }
 
-void Program::print() {
+void Program::print() const {
 	for (int i = 0; i < (int)mods.size(); i++) {
 		mods[i].print();
 	}

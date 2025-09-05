@@ -75,7 +75,7 @@ struct Term {
 	}
 
 	// Prints the term details for debugging
-	void print();
+	void print() const;
 };
 
 }

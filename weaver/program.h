@@ -37,7 +37,7 @@ struct Module {
 	int findType(vector<string> name) const;
 
 	// Prints the module contents for debugging
-	void print();
+	void print() const;
 };
 
 // Program is the top-level container for all modules in a program
@@ -89,7 +89,7 @@ struct Program {
 
 
 	// Prints the program contents for debugging
-	void print();
+	void print() const;
 };
 
 // Initializes the global module with built-in types like chan, fixed, ufixed, bool
