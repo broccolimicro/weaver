@@ -39,7 +39,15 @@ struct Term {
 
 	// Global registry of all available dialects
 	static vector<Dialect> dialects;
+
+	// Implements relationships between terms. If one term implements
+	// another, then their high-level behaviors should be equivalent within
+	// the valid set of environments.
 	vector<TermId> impl;
+
+	// TODO(edward.bingham) find a way to think about the valid set of
+	// environments. Right now, we just put a random source on every input
+	// channel and a sink on every output channel.
 
 	int kind;           // Kind of term (PROCESS, CONTEXT, or a user-defined kind)
 	Decl decl;          // Declaration of the term (name, args, return type, etc.)
