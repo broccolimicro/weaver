@@ -4,6 +4,10 @@
 namespace weaver {
 
 std::string Metadata::dialect() const {
+	if (kind < 0) {
+		// this is an interface
+		return "";
+	}
 	return Term::dialects[kind].name;
 }
 
