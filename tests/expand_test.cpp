@@ -7,28 +7,28 @@ using namespace weaver;
 // Helper function to create a program with nested types for testing
 Program createNestedTypesProgram() {
 	Program prog;
-	
+
 	// Create a module
 	int modIdx = prog.getModule("TestModule");
 	Module &mod = prog.mods[modIdx];
-	
+
 	// Create a leaf type (no members)
 	Type leafType = Type::typeOf("Leaf");
 	int leafIdx = mod.createType(leafType);
-	
+
 	// Create a branch type with leaf members
 	Type branchType = Type::typeOf("Branch");
 	branchType.members.push_back(Instance(TypeId(modIdx, leafIdx), "leaf1"));
 	branchType.members.push_back(Instance(TypeId(modIdx, leafIdx), "leaf2"));
 	int branchIdx = mod.createType(branchType);
-	
+
 	// Create a root type with branch and leaf members
 	Type rootType = Type::typeOf("Root");
 	rootType.members.push_back(Instance(TypeId(modIdx, branchIdx), "branch1"));
 	rootType.members.push_back(Instance(TypeId(modIdx, branchIdx), "branch2"));
 	rootType.members.push_back(Instance(TypeId(modIdx, leafIdx), "leaf3"));
 	mod.createType(rootType);
-	
+
 	return prog;
 }
 
@@ -37,16 +37,16 @@ TEST(ExpandTest, Leaves) {
 	Program prog = createNestedTypesProgram();
 	VariableExpander expander(prog);
 		
-	TypeId leafIdx = prog.findType(0, {"Leaf"});
+	TypeId leafIdx = prog.findType("", "Leaf", 0);
 	expander.registerType(leafIdx);
-	
+
 	// Create an instance of the Root type
-	TypeId rootTypeId = prog.findType(0, {"Root"});
+	TypeId rootTypeId = prog.findType("", "Root", 0);
 	Instance rootInst(rootTypeId, "rootVar");
-	
+
 	// Start the expansion from the root instance
 	expander.start(rootInst);
-	
+
 	// Collect all the expanded variables
 	std::vector<std::string> expandedNames;
 	while (!expander.done()) {
@@ -67,16 +67,16 @@ TEST(ExpandTest, Branches) {
 	Program prog = createNestedTypesProgram();
 	VariableExpander expander(prog);
 		
-	TypeId leafIdx = prog.findType(0, {"Branch"});
+	TypeId leafIdx = prog.findType("", "Branch", 0);
 	expander.registerType(leafIdx);
-	
+
 	// Create an instance of the Root type
-	TypeId rootTypeId = prog.findType(0, {"Root"});
+	TypeId rootTypeId = prog.findType("", "Root", 0);
 	Instance rootInst(rootTypeId, "rootVar");
-	
+
 	// Start the expansion from the root instance
 	expander.start(rootInst);
-	
+
 	// Collect all the expanded variables
 	std::vector<std::string> expandedNames;
 	while (!expander.done()) {
@@ -94,16 +94,16 @@ TEST(ExpandTest, Root) {
 	Program prog = createNestedTypesProgram();
 	VariableExpander expander(prog);
 		
-	TypeId leafIdx = prog.findType(0, {"Root"});
+	TypeId leafIdx = prog.findType("", "Root", 0);
 	expander.registerType(leafIdx);
-	
+
 	// Create an instance of the Root type
-	TypeId rootTypeId = prog.findType(0, {"Root"});
+	TypeId rootTypeId = prog.findType("", "Root", 0);
 	Instance rootInst(rootTypeId, "rootVar");
-	
+
 	// Start the expansion from the root instance
 	expander.start(rootInst);
-	
+
 	// Collect all the expanded variables
 	std::vector<std::string> expandedNames;
 	while (!expander.done()) {
@@ -121,12 +121,12 @@ TEST(ExpandTest, Invalid) {
 	VariableExpander expander(prog);
 		
 	// Create an instance of the Root type
-	TypeId rootTypeId = prog.findType(0, {"Root"});
+	TypeId rootTypeId = prog.findType("", "Root", 0);
 	Instance rootInst(rootTypeId, "rootVar");
-	
+
 	// Start the expansion from the root instance
 	expander.start(rootInst);
-	
+
 	// Collect all the expanded variables
 	std::vector<std::string> expandedNames;
 	while (!expander.done()) {

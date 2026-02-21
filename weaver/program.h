@@ -2,6 +2,7 @@
 
 #include "term.h"
 #include "type.h"
+#include "proto.h"
 
 #include <vector>
 #include <string>
@@ -27,14 +28,12 @@ struct Module {
 	// Returns the index of the newly created type
 	int createType(Type type);
 
-	// Finds a term by its prototype declaration
-	// Returns the index of the term, or -1 if not found
-	int findTerm(TypeId recv, vector<string> name, vector<TypeId> args) const;
-	vector<int> findTerms(vector<string> name) const;
-	
 	// Finds a type by its name
 	// Returns the index of the type, or -1 if not found
-	int findType(vector<string> name) const;
+	int findType(string name) const;
+
+	// Finds a term by its prototype declaration
+	vector<int> findTerms(Decl decl) const;
 
 	// Prints the module contents for debugging
 	void print() const;
@@ -55,21 +54,19 @@ struct Program {
 	// Returns the index of the newly created module
 	int getModule(string name);
 
-	// Finds a term across all modules by its prototype declaration
-	// Returns the index of the term, or -1 if not found
-	TermId findTerm(int index, TypeId recv, vector<string> name, vector<TypeId> args) const;
-	TermId findTerm(TypeId recv, vector<string> name, vector<TypeId> args) const;
-
-	vector<TermId> findTerms(int index, vector<string> name) const;
-	vector<TermId> findTerms(vector<string> name) const;
-
 	// Finds a type across all modules by its qualified name
 	// First searches in the global module, then in the module at 'index'
 	// For qualified names (like "mod.type"), searches in the specified module
-	TypeId findType(int index, vector<string> name) const;
+	TypeId findType(string mod, string name, int index=-1) const;
 
-	// Same as above, but there is no current module
-	TypeId findType(vector<string> name) const;
+	// Converts a typename into an instance
+	Instance findInstance(Typename type, string name, int index=-1) const;
+
+	// Converts a prototype into a declaration
+	Decl findDecl(Prototype proto, int index=-1) const;
+
+	// Find all terms that match this prototype
+	vector<TermId> findTerms(Prototype proto, int index=-1) const;
 
 	TermId begin() const;
 	TermId next(TermId idx) const;

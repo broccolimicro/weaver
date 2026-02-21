@@ -26,24 +26,12 @@ Term::Term() {
 	// kind will be uninitialized, decl empty, symb empty, def empty
 }
 
+Term::Term(string name, vector<Instance> args, TypeId ret, TypeId recv) {
+	decl = Decl(name, args, ret, recv);  // Initialize the declaration
+}
+
 Term::~Term() {
 	// No specific cleanup needed
-}
-
-Term Term::procOf(int kind, string name, vector<Instance> args, TypeId ret, TypeId recv) {
-	// Factory method to create a process term
-	Term result;
-	result.kind = kind;  // Set the kind of process
-	result.decl = Decl(name, args, ret, recv);  // Initialize the declaration
-	return result;
-}
-
-Term Term::contextOf(string name, vector<Instance> args, TypeId ret, TypeId recv) {
-	// Factory method to create a context term
-	Term result;
-	result.kind = Term::CONTEXT;  // Set kind to CONTEXT
-	result.decl = Decl(name, args, ret, recv);  // Initialize the declaration
-	return result;
 }
 
 int Term::pushDialect(string name, Dialect::Factory factory) {
@@ -61,25 +49,42 @@ int Term::findDialect(string name) {
 		}
 	}
 	// Return NONE if no matching dialect is found
-	return Term::NONE;
+	return -1;
 }
 
 int Term::getDialect(string name, Dialect::Factory factory) {
 	int result = findDialect(name);
-	if (result != Term::NONE) {
+	if (result != -1) {
 		return result;
 	}
 	return pushDialect(name, factory);
 }
 
-const Term::Dialect &Term::dialect() const {
-	return Term::dialects[kind];
+int Term::findVariant(Condition cond) const {
+	for (int i = (int)variants.size()-1; i >= 0; i--) {
+		if (variants[i].meta.meets(cond)) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 void Term::print() const {
 	// Print term details for debugging
-	printf("term %d ", kind);
+	printf("term ");
 	decl.print();
+	for (int i = 0; i < (int)variants.size(); i++) {
+		printf("\t%d: ", i);
+		variants[i].meta.print();
+		printf(" -> {");
+		for (int j = 0; j < (int)variants[i].derived.size(); j++) {
+			if (j != 0) {
+				printf(" ");
+			}
+			printf("%d", variants[i].derived[j]);
+		}
+		printf("}\n");
+	}
 }
 
 }

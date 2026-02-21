@@ -12,48 +12,31 @@ int Module::createType(Type type) {
 	return (int)types.size()-1;
 }
 
-int Module::findTerm(TypeId recv, vector<string> name, vector<TypeId> args) const {
-	for (int i = 0; i < (int)terms.size(); i++) {
-		if (terms[i].decl.recv == recv
-			and terms[i].decl.name == name[0]
-			and terms[i].decl.args.size() == args.size()) {
-			bool found = true;
-			for (int j = 0; j < (int)args.size(); j++) {
-				if (args[j] != terms[i].decl.args[j].type) {
-					found = false;
-					break;
-				}
-			}
-			if (found) {
-				return i;
-			}
+int Module::findType(string name) const {
+	for (int i = 0; i < (int)types.size(); i++) {
+		if (types[i].name == name) {
+			return i;
 		}
 	}
 	return -1;
 }
 
-vector<int> Module::findTerms(vector<string> name) const {
+vector<int> Module::findTerms(Decl decl) const {
 	vector<int> result;
 	for (int i = 0; i < (int)terms.size(); i++) {
-		if (terms[i].decl.name == name[0]) {
-			result.push_back(i);
+		if (terms[i].decl.recv == decl.recv
+			and terms[i].decl.name == decl.name
+			and terms[i].decl.args.size() == decl.args.size()) {
+			bool found = true;
+			for (int j = 0; j < (int)decl.args.size() and found; j++) {
+				found = (decl.args[j].type == terms[i].decl.args[j].type);
+			}
+			if (found) {
+				result.push_back(i);
+			}
 		}
 	}
 	return result;
-}
-
-int Module::findType(vector<string> name) const {
-	if (name.size() == 1u) {
-		for (int i = 0; i < (int)types.size(); i++) {
-			if (types[i].name == name[0]) {
-				return i;
-			}
-		}
-	} else {
-		// Qualified names not yet implemented
-		printf("error: unimplemented\n");
-	}
-	return -1;
 }
 
 void Module::print() const {
@@ -113,145 +96,12 @@ int Program::getModule(string name) {
 	return result;
 }
 
-TermId Program::findTerm(int index, TypeId recv, vector<string> name, vector<TypeId> args) const {
-	if (name.empty()) {
-		return TermId();
-	} else if (name.size() == 1u) {
-		// For unqualified names, we have a type lookup priority:
-		// 1. First check the global module (for built-in types)
-		// 2. Then check the current module (specified by 'index')
-		TermId result;
-		if (global >= 0) {
-			result.mod = global;
-			result.index = mods[global].findTerm(recv, name, args);
-		}
-
-		if (not result.defined() and index >= 0) {
-			result.mod = index;
-			result.index = mods[index].findTerm(recv, name, args);
-		}
-		
-		return result;
-	}
-
-	// For qualified names, extract the module and look for the type in that module
-	string modName = name[0];
-	name.erase(name.begin());
-	for (int i = 0; i < (int)mods.size(); i++) {
-		if (mods[i].name == modName) {
-			return TermId(i, mods[i].findTerm(recv, name, args));
-		}
-	}
-	return TermId();
-}
-
-TermId Program::findTerm(TypeId recv, vector<string> name, vector<TypeId> args) const {
-	if (name.empty()) {
-		return TermId();
-	} else if (name.size() == 1u) {
-		// For unqualified names, we have a type lookup priority:
-		// 1. First check the global module (for built-in types)
-		// 2. Then check the current module (specified by 'index')
-		TermId result;
-		if (global >= 0) {
-			result.mod = global;
-			result.index = mods[global].findTerm(recv, name, args);
-		}
-		
-		return result;
-	}
-
-	// For qualified names, extract the module and look for the type in that module
-	string modName = name[0];
-	name.erase(name.begin());
-	for (int i = 0; i < (int)mods.size(); i++) {
-		if (mods[i].name == modName) {
-			return TermId(i, mods[i].findTerm(recv, name, args));
-		}
-	}
-	return TermId();
-}
-
-vector<TermId> Program::findTerms(int index, vector<string> name) const {
-	if (name.empty()) {
-		return vector<TermId>();
-	} else if (name.size() == 1u) {
-		// For unqualified names, we have a type lookup priority:
-		// 1. First check the global module (for built-in types)
-		// 2. Then check the current module (specified by 'index')
-		vector<TermId> result;
-		if (global >= 0) {
-			vector<int> idx = mods[global].findTerms(name);
-			for (auto i = idx.begin(); i != idx.end(); i++) {
-				result.push_back(TermId(global, *i));
-			}
-		}
-
-		if (result.empty() and index >= 0) {
-			vector<int> idx = mods[global].findTerms(name);
-			for (auto i = idx.begin(); i != idx.end(); i++) {
-				result.push_back(TermId(index, *i));
-			}
-		}
-		
-		return result;
-	}
-
-	// For qualified names, extract the module and look for the type in that module
-	string modName = name[0];
-	name.erase(name.begin());
-	for (int i = 0; i < (int)mods.size(); i++) {
-		if (mods[i].name == modName) {
-			vector<TermId> result;
-			vector<int> idx = mods[i].findTerms(name);
-			for (auto j = idx.begin(); j != idx.end(); j++) {
-				result.push_back(TermId(i, *j));
-			}
-			return result;
-		}
-	}
-	return vector<TermId>();
-}
-
-vector<TermId> Program::findTerms(vector<string> name) const {
-	if (name.empty()) {
-		return vector<TermId>();
-	} else if (name.size() == 1u) {
-		// For unqualified names, we have a type lookup priority:
-		// 1. First check the global module (for built-in types)
-		// 2. Then check the current module (specified by 'index')
-		vector<TermId> result;
-		if (global >= 0) {
-			vector<int> idx = mods[global].findTerms(name);
-			for (auto i = idx.begin(); i != idx.end(); i++) {
-				result.push_back(TermId(global, *i));
-			}
-		}
-		
-		return result;
-	}
-
-	// For qualified names, extract the module and look for the type in that module
-	string modName = name[0];
-	name.erase(name.begin());
-	for (int i = 0; i < (int)mods.size(); i++) {
-		if (mods[i].name == modName) {
-			vector<TermId> result;
-			vector<int> idx = mods[i].findTerms(name);
-			for (auto j = idx.begin(); j != idx.end(); j++) {
-				result.push_back(TermId(i, *j));
-			}
-			return result;
-		}
-	}
-	return vector<TermId>();
-}
-
-
-TypeId Program::findType(int index, vector<string> name) const {
+TypeId Program::findType(string mod, string name, int index) const {
 	if (name.empty()) {
 		return TypeId();
-	} else if (name.size() == 1u) {
+	}
+
+	if (mod.empty()) {
 		// For unqualified names, we have a type lookup priority:
 		// 1. First check the global module (for built-in types)
 		// 2. Then check the current module (specified by 'index')
@@ -265,45 +115,62 @@ TypeId Program::findType(int index, vector<string> name) const {
 			result.mod = index;
 			result.index = mods[index].findType(name);
 		}
-		
+
 		return result;
 	}
 
-	// For qualified names, extract the module and look for the type in that module
-	string modName = name[0];
-	name.erase(name.begin());
-	for (int i = 0; i < (int)mods.size(); i++) {
-		if (mods[i].name == modName) {
-			return TypeId(i, mods[i].findType(name));
-		}
+	// For qualified names, extract the module and look for the type in that
+	// module
+	index = findModule(mod);
+	if (index >= 0) {
+		return TypeId(index, mods[index].findType(name));
 	}
 	return TypeId();
 }
 
-TypeId Program::findType(vector<string> name) const {
-	if (name.empty()) {
-		return TypeId();
-	} else if (name.size() == 1u) {
-		// For unqualified names, we have a type lookup priority:
-		// 1. First check the global module (for built-in types)
-		// 2. Then check the current module (specified by 'index')
-		TypeId result;
+Instance Program::findInstance(Typename type, string name, int index) const {
+	return Instance(findType(type.mod, type.name, index), name, type.size);
+}
+
+Decl Program::findDecl(Prototype proto, int index) const {
+	Decl result;
+	result.name = proto.name;
+	result.recv = findType(proto.mod, proto.recv, index);
+	for (auto i = proto.args.begin(); i != proto.args.end(); i++) {
+		result.args.push_back(findInstance(*i, "", index));
+	}
+	return result;
+}
+
+vector<TermId> Program::findTerms(Prototype proto, int index) const {
+	vector<TermId> result;
+	if (proto.empty()) {
+		return result;
+	}
+
+	if (proto.mod.empty()) {
+		// Then this is in the global namespace
 		if (global >= 0) {
-			result.mod = global;
-			result.index = mods[global].findType(name);
+			for (int term : mods[global].findTerms(findDecl(proto))) {
+				result.push_back(TermId(global, term));
+			}
+		}
+
+		if (result.empty() and index >= 0) {
+			for (int term : mods[index].findTerms(findDecl(proto))) {
+				result.push_back(TermId(global, term));
+			}
 		}
 		return result;
 	}
 
-	// For qualified names, extract the module and look for the type in that module
-	string modName = name[0];
-	name.erase(name.begin());
-	for (int i = 0; i < (int)mods.size(); i++) {
-		if (mods[i].name == modName) {
-			return TypeId(i, mods[i].findType(name));
+	index = findModule(proto.mod);
+	if (index >= 0) {
+		for (int term : mods[index].findTerms(findDecl(proto))) {
+			result.push_back(TermId(global, term));
 		}
 	}
-	return TypeId();
+	return result;
 }
 
 TermId Program::begin() const {
