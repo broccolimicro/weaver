@@ -214,6 +214,10 @@ Term &Program::termAt(TermId idx) {
 	return mods[idx.mod].terms[idx.index];
 }
 
+TermId Program::createTerm(int mod, Term term) {
+	return TermId(mod, mods[mod].createTerm(term));
+}
+
 void Program::print() const {
 	for (int i = 0; i < (int)mods.size(); i++) {
 		mods[i].print();

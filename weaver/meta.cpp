@@ -3,6 +3,14 @@
 
 namespace weaver {
 
+Metadata::Metadata(int kind) {
+	this->kind = kind;
+	this->cost = std::numeric_limits<double>::infinity();
+}
+
+Metadata::~Metadata() {
+}
+
 std::string Metadata::dialect() const {
 	if (kind < 0) {
 		// this is an interface

@@ -39,6 +39,9 @@ struct Term {
 		int super; // variant this was derived from
 		std::vector<int> derived; // set of derived variants
 
+		Variant(int super, std::any def, Metadata meta);
+		~Variant();
+
 		template <typename T>
 		T &as() {
 			return std::any_cast<T&>(def);

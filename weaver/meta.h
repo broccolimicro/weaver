@@ -24,6 +24,9 @@ struct Metadata {
 	std::map<std::string, std::any> analysis;
 	double cost;
 
+	Metadata(int kind);
+	~Metadata(); 
+
 	std::string dialect() const;
 
 	void set(std::string name);

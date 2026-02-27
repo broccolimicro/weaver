@@ -21,6 +21,15 @@ Term::Dialect::~Dialect() {
 	// No specific cleanup needed
 }
 
+Term::Variant::Variant(int super, std::any def, Metadata meta) {
+	this->super = super;
+	this->def = def;
+	this->meta = meta;
+}
+
+Term::Variant::~Variant() {
+}
+
 Term::Term() {
 	// Default constructor creates an empty term
 	// kind will be uninitialized, decl empty, symb empty, def empty

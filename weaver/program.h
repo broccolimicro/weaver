@@ -84,6 +84,7 @@ struct Program {
 	// Returns a mutable reference to the term at the specified TermId
 	Term &termAt(TermId idx);
 
+	TermId createTerm(int mod, Term term);
 
 	// Prints the program contents for debugging
 	void print() const;
