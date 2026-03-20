@@ -3,31 +3,30 @@
 namespace weaver {
 
 // Initialize the static dialect registry
-vector<Term::Dialect> Term::dialects;
+vector<Dialect> Term::dialects;
 
-Term::Dialect::Dialect() {
+Dialect::Dialect() {
 	// Default constructor creates an empty dialect
 	name = "";
 	factory = nullptr;
 }
 
-Term::Dialect::Dialect(string name, Term::Dialect::Factory factory) {
+Dialect::Dialect(string name, Dialect::Factory factory) {
 	// Initialize with the specified name and factory function
 	this->name = name;
 	this->factory = factory;
 }
 
-Term::Dialect::~Dialect() {
+Dialect::~Dialect() {
 	// No specific cleanup needed
 }
 
-Term::Variant::Variant(int super, std::any def, Metadata meta) {
+Variant::Variant(int super, std::any def, Metadata meta) : meta(meta) {
 	this->super = super;
 	this->def = def;
-	this->meta = meta;
 }
 
-Term::Variant::~Variant() {
+Variant::~Variant() {
 }
 
 Term::Term() {
@@ -67,15 +66,6 @@ int Term::getDialect(string name, Dialect::Factory factory) {
 		return result;
 	}
 	return pushDialect(name, factory);
-}
-
-int Term::findVariant(Condition cond) const {
-	for (int i = (int)variants.size()-1; i >= 0; i--) {
-		if (variants[i].meta.meets(cond)) {
-			return i;
-		}
-	}
-	return -1;
 }
 
 void Term::print() const {

@@ -7,8 +7,6 @@
 #include <any>
 
 #include <common/interface.h>
-#include <parse/syntax.h>
-#include <parse/tokenizer.h>
 
 using std::vector;
 using std::string;

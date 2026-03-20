@@ -7,11 +7,6 @@
 
 namespace weaver {
 
-struct Condition {
-	std::vector<std::vector<std::string> > analyses;
-	std::string dialect;
-};
-
 // This is used to store data from analysis passes.
 struct Metadata {
 	enum {
@@ -21,7 +16,15 @@ struct Metadata {
 	};
 
 	int kind;
-	std::map<std::string, std::any> analysis;
+
+	// This stores two different things:
+	// 1. an analysis where i->first is the name and
+	//    i->second is the result of the analysis
+	// 2. a property guarantee where i->first is the name
+	//    and i->second is the region or set of regions of
+	//    the dialect for which that property is
+	//    guaranteed or empty for whole process.
+	std::map<std::string, std::any> props;
 	double cost;
 
 	Metadata(int kind);
@@ -32,22 +35,30 @@ struct Metadata {
 	void set(std::string name);
 	bool has(std::string name) const;
 	void unset(std::string name);
-	bool meets(const Condition &cond) const;
 
 	void print() const;
 
 	template <typename T>
-	T *findAnalysis(std::string name) {
-		auto i = analysis.find(name);
-		if (i != analysis.end()) {
+	const T *get(std::string name) const {
+		auto i = props.find(name);
+		if (i != props.end()) {
 			return std::any_cast<T>(&i->second);
 		}
 		return nullptr;
 	}
 
 	template <typename T>
-	T *newAnalysis(std::string name, T value=T()) {
-		auto i = analysis.insert(pair<std::string, std::any>(name, value));
+	T *get(std::string name) {
+		auto i = props.find(name);
+		if (i != props.end()) {
+			return std::any_cast<T>(&i->second);
+		}
+		return nullptr;
+	}
+
+	template <typename T>
+	T *set(std::string name, T value) {
+		auto i = props.insert(pair<std::string, std::any>(name, value));
 		return std::any_cast<T>(&i.first->second);
 	}
 };

@@ -1,6 +1,6 @@
 NAME          = weaver
-DEPEND        = parse common
-TEST_DEPEND   = parse common
+DEPEND        = boolean parse common
+TEST_DEPEND   = boolean parse common
 
 COVERAGE ?= 0
 

@@ -13,46 +13,46 @@
 
 namespace weaver {
 
+// The dialect system allows for multiple language representations of
+// term definitions. Each dialect has its own syntax and semantics, but
+// shares the common term declaration structure. This enables support
+// for different hardware description languages within the same framework.
+struct Dialect {
+	// Factory function type for creating term implementations from syntax
+	typedef std::any (*Factory)(string name, const parse::syntax*, tokenizer*);
+
+	Dialect();
+	Dialect(string name, Factory factory);
+	~Dialect();
+	
+	string name;    // Name of the dialect (e.g., "chp", "hse", "prs")
+	Factory factory; // Factory function to create dialect-specific term definition
+};
+
+struct Variant {
+	std::any def;
+	Metadata meta;
+
+	int super; // variant this was derived from
+	std::vector<int> derived; // set of derived variants
+
+	Variant(int super, std::any def, Metadata meta);
+	~Variant();
+
+	template <typename T>
+	T &as() {
+		return std::any_cast<T&>(def);
+	}
+
+	template <typename T>
+	const T &as() const {
+		return std::any_cast<const T&>(def);
+	}
+};
+
 // Term represents a function/process definition in the program
 // This includes both the declaration and the implementation
 struct Term {
-	// The dialect system allows for multiple language representations of
-	// term definitions. Each dialect has its own syntax and semantics, but
-	// shares the common term declaration structure. This enables support
-	// for different hardware description languages within the same framework.
-	struct Dialect {
-		// Factory function type for creating term implementations from syntax
-		typedef std::any (*Factory)(string name, const parse::syntax*, tokenizer*);
-
-		Dialect();
-		Dialect(string name, Factory factory);
-		~Dialect();
-		
-		string name;    // Name of the dialect (e.g., "chp", "hse", "prs")
-		Factory factory; // Factory function to create dialect-specific term definition
-	};
-
-	struct Variant {
-		std::any def;
-		Metadata meta;
-
-		int super; // variant this was derived from
-		std::vector<int> derived; // set of derived variants
-
-		Variant(int super, std::any def, Metadata meta);
-		~Variant();
-
-		template <typename T>
-		T &as() {
-			return std::any_cast<T&>(def);
-		}
-
-		template <typename T>
-		const T &as() const {
-			return std::any_cast<const T&>(def);
-		}
-	};
-
 	// Global registry of all available dialects
 	static vector<Dialect> dialects;
 
@@ -82,8 +82,6 @@ struct Term {
 	static int findDialect(string name);
 
 	static int getDialect(string name, Dialect::Factory factory = nullptr);
-
-	int findVariant(Condition cond) const;
 
 	// Prints the term details for debugging
 	void print() const;
