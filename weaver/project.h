@@ -2,6 +2,7 @@
 
 #include <parse/parse.h>
 #include <weaver/program.h>
+#include <weaver/proto.h>
 
 #include <filesystem>
 
@@ -31,7 +32,7 @@ struct Filetype {
 	// Project &proj, Program &prgm, string path, parse::syntax *syntax
 	typedef void (*Loader)(Project &, Program &, const Source &source);
 	// Program &prgm, int modIdx, int termIdx
-	typedef void (*Writer)(fs::path, const Project &, const Program &, int, int);
+	typedef void (*Writer)(fs::path, Project &, const Program &, int, int, int);
 
 	Filetype();
 	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write);
@@ -50,7 +51,12 @@ struct Tech {
 	std::string path;
 	std::vector<std::string> args;
 	std::string lib;
-	void *def;
+	std::any def;
+
+	template <typename T>
+	T &as() {
+		return std::any_cast<T&>(def);
+	}
 };
 
 struct Project {
@@ -86,15 +92,14 @@ struct Project {
 	bool read(Program &prgm, fs::path path);
 	bool load(Program &prgm);
 
-	bool save(Program &prgm, int modIdx, int termIdx, int varIdx) const;
-	void save(Program &prgm) const;
+	bool save(Program &prgm, int modIdx, int termIdx, int varIdx);
+	void save(Program &prgm);
 
 	void setTech(string cmd);
+	void setTechLib(string path);
 	vector<string> listTech() const;
 
 	bool hasMod() const;
-	/*void readMod();
-	void writeMod();*/
 
 	void vendor() const;
 	void tidy();

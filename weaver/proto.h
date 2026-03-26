@@ -30,6 +30,8 @@ struct Prototype {
 	std::vector<Typename> args;
 	bool unqualified;
 
+	int variant;
+
 	bool parse(std::string proto);
 	std::string to_string() const;
 	bool empty() const;

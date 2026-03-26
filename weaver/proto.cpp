@@ -45,9 +45,11 @@ std::string Typename::to_string() const {
 
 Prototype::Prototype() {
 	unqualified = true;
+	variant = -1;
 }
 
 Prototype::Prototype(std::string proto) {
+	variant = -1;
 	parse(proto);
 }
 
@@ -56,6 +58,13 @@ Prototype::~Prototype() {
 
 bool Prototype::parse(std::string proto) {
 	unqualified = true;
+
+	size_t at = proto.rfind("@");
+	if (at != std::string::npos) {
+		std::string argStr = proto.substr(at+1, proto.size()-at-2);
+		proto = proto.substr(0, at);
+		variant = std::stoi(argStr);
+	}
 
 	size_t par = proto.rfind("(");
 	if (par != std::string::npos) {
@@ -120,6 +129,10 @@ std::string Prototype::to_string() const {
 				result += args[i].to_string();
 			}
 			result += ")";
+		}
+
+		if (variant >= 0) {
+			result += "@" + std::to_string(variant);
 		}
 	}
 	return result;

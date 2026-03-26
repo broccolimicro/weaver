@@ -176,7 +176,7 @@ bool Project::load(Program &prgm) {
 	return true;
 }
 
-bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) const {
+bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) {
 	const weaver::Module &mod = prgm.mods[modIdx];
 	const weaver::Term &term = mod.terms[termIdx];
 	const weaver::Variant &variant = term.variants[varIdx];
@@ -190,11 +190,11 @@ bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) const {
 	std::filesystem::create_directories(emitDir.string());
 	
 	string filename = term.decl.name + filetype->ext;	
-	filetype->write((emitDir / filename).string(), *this, prgm, modIdx, termIdx);
+	filetype->write((emitDir / filename).string(), *this, prgm, modIdx, termIdx, varIdx);
 	return true;
 }
 
-void Project::save(Program &prgm) const {
+void Project::save(Program &prgm) {
 	for (int i = 0; i < (int)prgm.mods.size(); i++) {
 		for (int j = 0; j < (int)prgm.mods[i].terms.size(); j++) {
 			for (int k = 0; k < (int)prgm.mods[i].terms[j].variants.size(); k++) {
@@ -247,6 +247,10 @@ void Project::setTech(string cmd) {
 	}
 }
 
+void Project::setTechLib(string path) {
+	tech.lib = path;
+}
+
 vector<string> Project::listTech() const {
 	vector<string> result;
 	if (not fs::exists(techDir)) {
@@ -264,48 +268,6 @@ vector<string> Project::listTech() const {
 bool Project::hasMod() const {
 	return not rootDir.empty() and rootDir.parent_path() != rootDir;
 }
-
-/*void Project::readMod() {
-	tokenizer tokens;
-	tokens.register_token<parse::block_comment>(false);
-	tokens.register_token<parse::line_comment>(false);
-	parse_ucs::modfile::register_syntax(tokens);
-
-	ifstream fin;
-	string pathstr = (rootDir / "lm.mod").string();
-	fin.open(pathstr.c_str(), ios::binary | ios::in);
-	if (!fin.is_open()) {
-		tokens.error("file not found '" + (rootDir / "lm.mod").string() + "'", __FILE__, __LINE__);
-	} else {
-		fin.seekg(0, ios::end);
-		int size = (int)fin.tellg();
-		string buffer(size, ' ');
-		fin.seekg(0, ios::beg);
-		fin.read(&buffer[0], size);
-		fin.clear();
-		tokens.insert(pathstr, buffer, nullptr);
-	}
-
-	tokens.increment(true);
-	tokens.expect<parse_ucs::modfile>();
-
-	if (tokens.decrement(__FILE__, __LINE__)) {
-		parse_ucs::modfile syntax(tokens);
-
-		import_modfile(*this, syntax, tokens);
-	}
-}
-
-void Project::writeMod() {
-	parse_ucs::modfile result = export_modfile(*this);
-
-	ofstream fout;
-	string pathstr = (rootDir / "lm.mod").string();
-	fout.open(pathstr.c_str(), ios::out);
-	string buf = result.to_string("");
-	fout.write(buf.c_str(), buf.size());
-	fout.close();
-}*/
 
 void Project::vendor() const {
 }
