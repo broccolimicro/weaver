@@ -114,11 +114,28 @@ bool Project::incl(fs::path path, fs::path from) {
 }
 
 bool Project::read(Program &prgm, fs::path path) {
-	if (path.empty()) {
+	if (not fs::exists(path)) {
 		return false;
 	}
 
-	string ext = path.extension().string().substr(1);
+	if (fs::is_directory(path)) {
+		for (const auto &entry : fs::recursive_directory_iterator(path, fs::directory_options::follow_directory_symlink)) {
+			string ext = path.extension().string();
+			if (not ext.empty()) {
+				ext = ext.substr(1);
+			}
+			auto filetype = getExtension(ext);
+			if (filetype != nullptr and not read(prgm, entry.path())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	string ext = path.extension().string();
+	if (not ext.empty()) {
+		ext = ext.substr(1);
+	}
 	auto filetype = getExtension(ext);
 	if (filetype == nullptr) {
 		printf("error: unrecognized filetype '%s'\n", ext.c_str());
@@ -277,28 +294,21 @@ void Project::tidy() {
 
 string Project::pathToModule(fs::path path) const {
 	string result;
-
-	string ext = path.extension().string().substr(1);
-	auto filetype = getExtension(ext);
-
-	fs::path dirInModule = fs::relative(path.parent_path(), rootDir);
-	if (dirInModule.lexically_normal() != ".") {
-		result = (fs::path(modName) / dirInModule / path.stem()).string();
-	} else {
-		result = (fs::path(modName) / path.stem()).string();
+	if (not fs::is_directory(path)) {
+		path = path.parent_path();
 	}
 
-	if (filetype != nullptr and not filetype->dialect.empty()) {
-		result += ">>" + filetype->dialect;
+	fs::path dirInModule = fs::relative(path, rootDir);
+	if (dirInModule.lexically_normal() != ".") {
+		result = (fs::path(modName) / dirInModule).string();
+	} else {
+		result = fs::path(modName).string();
 	}
 	return result;
 }
 
 fs::path Project::pathFromModule(string mod) const {
 	fs::path canon = mod;
-	if (canon.extension().empty()) {
-		canon = mod + ".wv";
-	}
 	if (not canon.is_absolute()) {
 		if (mod.rfind(fs::relative(workDir, rootDir).string(), 0) == 0) {
 			canon = rootDir / canon;
