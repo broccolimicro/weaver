@@ -79,48 +79,41 @@ const Filetype *Project::getDialect(string dialect) const {
 	return nullptr;
 }
 
-bool Project::incl(fs::path path, fs::path from) {
-	if (from.empty()) {
-		from = workDir;
+bool Project::incl(std::string uri) {
+	fs::path path;
+	if (uri == modName) {
+		path = rootDir / "src";
+	} else if (uri.starts_with(modName + "/")) {
+		path = rootDir / "src" / uri.substr(modName.size()+1);
+	} else {
+		path = rootDir / "dep" / uri;
 	}
 
-	fs::path filename;
-	if (path.is_absolute()) {
-		if (fs::exists(path)) {
-			filename = path.string();
-		}
-	} else {
-		if (fs::exists(from / path)) {
-			filename = (from / path).string();
-		}
-		for (auto i = includePath.begin(); i != includePath.end() and filename.empty(); i++) {
-			if (fs::exists(*i / path)) {
-				filename = (*i / path).string();
-			}
-		}
-	}
-	if (filename.empty()) {
-		string pathstr = path.string();
-		printf("error: file not found '%s'\n", pathstr.c_str());
+	if (not fs::exists(path)) {
+		cout << "error: import not found '" << uri << "'" << endl;
+		cout << "note: searched '" << path << "'" << endl;
 		return false;
 	}
 
-	auto pos = find(imports.begin(), imports.end(), filename);
+	auto pos = find(imports.begin(), imports.end(), path);
 	if (pos == imports.end()) {
-		imports.push_back(filename);
+		imports.push_back(path);
 	}
-
 	return true;
 }
 
 bool Project::read(Program &prgm, fs::path path) {
+	cout << "reading " << path << endl;
 	if (not fs::exists(path)) {
 		return false;
 	}
 
 	if (fs::is_directory(path)) {
-		for (const auto &entry : fs::recursive_directory_iterator(path, fs::directory_options::follow_directory_symlink)) {
-			string ext = path.extension().string();
+		for (const auto &entry : fs::directory_iterator(path)) {
+			if (not fs::is_regular_file(entry.path())) {
+				continue;
+			}
+			string ext = entry.path().extension().string();
 			if (not ext.empty()) {
 				ext = ext.substr(1);
 			}
@@ -179,6 +172,7 @@ bool Project::load(Program &prgm) {
 
 	for (int i = 0; i < (int)imports.size(); i++) {
 		if (not read(prgm, imports[i])) {
+			cout << "error: failed to read '" << imports[i] << "'" << endl;
 			return false;
 		}
 	}

@@ -88,7 +88,7 @@ struct Project {
 	const Filetype *getExtension(string ext) const;
 	const Filetype *getDialect(string dialect) const;
 
-	bool incl(fs::path path, fs::path from="");	
+	bool incl(std::string uri);
 	bool read(Program &prgm, fs::path path);
 	bool load(Program &prgm);
 
