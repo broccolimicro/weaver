@@ -52,15 +52,17 @@ bool operator==(const Instance &i0, const Instance &i1);
 // TermId is a reference to a specific term within a specific module
 // Used to uniquely identify a term across the entire program
 struct TermId {
-	TermId();
-	TermId(int mod, int index);
+	TermId(int mod=-1, int index=-1, int var=-1);
 	~TermId();
 
 	int mod;    // Index of the module containing the term
 	int index;  // Index of the term within the module
+	int var;    // index of the variant within the term
 
 	// Checks if this TermId references a valid term
-	bool defined() const;
+	bool hasMod() const;
+	bool hasTerm() const;
+	bool hasVar() const;
 };
 
 // Comparison operators for TermId

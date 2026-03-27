@@ -104,13 +104,13 @@ bool Project::incl(fs::path path, fs::path from) {
 		printf("error: file not found '%s'\n", pathstr.c_str());
 		return false;
 	}
-	
+
 	auto pos = find(imports.begin(), imports.end(), filename);
 	if (pos == imports.end()) {
 		imports.push_back(filename);
 	}
 
-	return true;	
+	return true;
 }
 
 bool Project::read(Program &prgm, fs::path path) {
@@ -159,7 +159,7 @@ bool Project::read(Program &prgm, fs::path path) {
 
 bool Project::load(Program &prgm) {
 	// TODO(edward.bingham) this is still wrong, we have to create a DAG and walk the DAG backwards from the leaves...
-	
+
 	for (int i = 0; i < (int)imports.size(); i++) {
 		if (not read(prgm, imports[i])) {
 			return false;
@@ -188,8 +188,8 @@ bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) {
 
 	fs::path emitDir = rootDir / BUILD / rootpathFromModule(mod.name);
 	std::filesystem::create_directories(emitDir.string());
-	
-	string filename = term.decl.name + filetype->ext;	
+
+	string filename = term.decl.name + "." + filetype->ext;
 	filetype->write((emitDir / filename).string(), *this, prgm, modIdx, termIdx, varIdx);
 	return true;
 }

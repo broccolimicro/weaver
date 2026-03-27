@@ -79,10 +79,14 @@ struct Program {
 	Type &typeAt(TypeId idx);
 
 	// Returns a const reference to the term at the specified TermId
+	const Module &modAt(TermId idx) const;
 	const Term &termAt(TermId idx) const;
+	const Variant &varAt(TermId idx) const;
 	
 	// Returns a mutable reference to the term at the specified TermId
+	Module &modAt(TermId idx);
 	Term &termAt(TermId idx);
+	Variant &varAt(TermId idx);
 
 	TermId createTerm(int mod, Term term);
 

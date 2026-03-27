@@ -80,45 +80,49 @@ bool operator==(const Instance &i0, const Instance &i1) {
 	return true;
 }
 
-TermId::TermId() {
-	mod = -1;
-	index = -1;
-}
-
-TermId::TermId(int mod, int index) {
+TermId::TermId(int mod, int index, int var) {
 	this->mod = mod;
 	this->index = index;
+	this->var = var;
 }
 
 TermId::~TermId() {
 }
 
-bool TermId::defined() const {
+bool TermId::hasMod() const {
+	return mod >= 0;
+}
+
+bool TermId::hasTerm() const {
 	return mod >= 0 and index >= 0;
 }
 
+bool TermId::hasVar() const {
+	return mod >= 0 and index >= 0 and var >= 0;
+}
+
 bool operator==(TermId t0, TermId t1) {
-	return t0.mod == t1.mod and t0.index == t1.index;
+	return t0.mod == t1.mod and t0.index == t1.index and t0.var == t1.var;
 }
 
 bool operator!=(TermId t0, TermId t1) {
-	return t0.mod != t1.mod or t0.index != t1.index;
+	return t0.mod != t1.mod or t0.index != t1.index or t0.var != t1.var;
 }
 
 bool operator<(TermId t0, TermId t1) {
-	return t0.mod < t1.mod or (t0.mod == t1.mod and t0.index < t1.index);
+	return t0.mod < t1.mod or (t0.mod == t1.mod and (t0.index < t1.index or (t0.index == t1.index and t0.var < t1.var)));
 }
 
 bool operator>(TermId t0, TermId t1) {
-	return t0.mod > t1.mod or (t0.mod == t1.mod and t0.index > t1.index);
+	return t0.mod > t1.mod or (t0.mod == t1.mod and (t0.index > t1.index or (t0.index == t1.index and t0.var > t1.var)));
 }
 
 bool operator<=(TermId t0, TermId t1) {
-	return t0.mod < t1.mod or (t0.mod == t1.mod and t0.index <= t1.index);
+	return t0.mod < t1.mod or (t0.mod == t1.mod and (t0.index < t1.index or (t0.index == t1.index and t0.var <= t1.var)));
 }
 
 bool operator>=(TermId t0, TermId t1) {
-	return t0.mod > t1.mod or (t0.mod == t1.mod and t0.index >= t1.index);
+	return t0.mod > t1.mod or (t0.mod == t1.mod and (t0.index > t1.index or (t0.index == t1.index and t0.var >= t1.var)));
 }
 
 Decl::Decl() {

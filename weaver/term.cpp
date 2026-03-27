@@ -21,12 +21,26 @@ Dialect::~Dialect() {
 	// No specific cleanup needed
 }
 
-Variant::Variant(int super, std::any def, Metadata meta) : meta(meta) {
+Variant::Variant(Metadata meta, std::any def, int super) : meta(meta) {
+	this->super = super;
+	this->def = def;
+}
+
+Variant::Variant(std::string dialect, std::any def, int super) : meta(Term::getDialect(dialect)) {
+	this->super = super;
+	this->def = def;
+}
+
+Variant::Variant(int kind, std::any def, int super) : meta(kind) {
 	this->super = super;
 	this->def = def;
 }
 
 Variant::~Variant() {
+}
+
+Variant::operator bool() const {
+	return def.has_value();
 }
 
 Term::Term() {
@@ -66,6 +80,15 @@ int Term::getDialect(string name, Dialect::Factory factory) {
 		return result;
 	}
 	return pushDialect(name, factory);
+}
+
+int Term::createVariant(Variant var) {
+	int result = (int)variants.size();
+	variants.push_back(var);
+	if (variants.back().super >= 0 and variants.back().super < (int)variants.size()) {
+		variants[variants.back().super].derived.push_back(result);
+	}
+	return result;
 }
 
 void Term::print() const {

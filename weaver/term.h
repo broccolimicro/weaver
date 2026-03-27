@@ -36,8 +36,17 @@ struct Variant {
 	int super; // variant this was derived from
 	std::vector<int> derived; // set of derived variants
 
-	Variant(int super, std::any def, Metadata meta);
+	Variant(Metadata meta, std::any def=std::any(), int super=-1);
+	Variant(std::string dialect, std::any def=std::any(), int super=-1);
+	Variant(int kind, std::any def=std::any(), int super=-1);
 	~Variant();
+
+	operator bool() const;
+
+	template <typename T>
+	void set(const T &value) {
+		def = value;
+	}
 
 	template <typename T>
 	T &as() {
@@ -82,6 +91,8 @@ struct Term {
 	static int findDialect(string name);
 
 	static int getDialect(string name, Dialect::Factory factory = nullptr);
+
+	int createVariant(Variant var);
 
 	// Prints the term details for debugging
 	void print() const;

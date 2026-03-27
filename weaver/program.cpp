@@ -206,12 +206,28 @@ Type &Program::typeAt(TypeId idx) {
 	return mods[idx.mod].types[idx.index];
 }
 
+const Module &Program::modAt(TermId idx) const {
+	return mods[idx.mod];
+}
+
 const Term &Program::termAt(TermId idx) const {
 	return mods[idx.mod].terms[idx.index];
 }
 
+const Variant &Program::varAt(TermId idx) const {
+	return mods[idx.mod].terms[idx.index].variants[idx.var];
+}
+
+Module &Program::modAt(TermId idx) {
+	return mods[idx.mod];
+}
+
 Term &Program::termAt(TermId idx) {
 	return mods[idx.mod].terms[idx.index];
+}
+
+Variant &Program::varAt(TermId idx) {
+	return mods[idx.mod].terms[idx.index].variants[idx.var];
 }
 
 TermId Program::createTerm(int mod, Term term) {

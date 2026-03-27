@@ -27,7 +27,7 @@ struct Metadata {
 	std::map<std::string, std::any> props;
 	double cost;
 
-	Metadata(int kind);
+	Metadata(int kind=-1);
 	~Metadata(); 
 
 	std::string dialect() const;
