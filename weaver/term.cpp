@@ -2,50 +2,26 @@
 
 namespace weaver {
 
-// Initialize the static dialect registry
-vector<Dialect> Term::dialects;
-
-Dialect::Dialect() {
-	// Default constructor creates an empty dialect
-	name = "";
-	factory = nullptr;
-}
-
-Dialect::Dialect(string name, Dialect::Factory factory) {
-	// Initialize with the specified name and factory function
-	this->name = name;
-	this->factory = factory;
-}
-
-Dialect::~Dialect() {
-	// No specific cleanup needed
-}
-
-Variant::Variant(Metadata meta, std::any def, int super) : meta(meta) {
+Variant::Variant(Metadata meta, std::any index, int super) : meta(meta) {
 	this->super = super;
-	this->def = def;
+	this->index = index;
 }
 
-Variant::Variant(std::string dialect, std::any def, int super) : meta(Term::getDialect(dialect)) {
+Variant::Variant(std::string dialect, std::any index, int super) : meta(dialect) {
 	this->super = super;
-	this->def = def;
-}
-
-Variant::Variant(int kind, std::any def, int super) : meta(kind) {
-	this->super = super;
-	this->def = def;
+	this->index = index;
 }
 
 Variant::~Variant() {
 }
 
 Variant::operator bool() const {
-	return def.has_value();
+	return index.has_value();
 }
 
 Term::Term() {
 	// Default constructor creates an empty term
-	// kind will be uninitialized, decl empty, symb empty, def empty
+	// variants empty, decl empty, symb empty, index empty
 }
 
 Term::Term(string name, vector<Instance> args, TypeId ret, TypeId recv) {
@@ -54,32 +30,6 @@ Term::Term(string name, vector<Instance> args, TypeId ret, TypeId recv) {
 
 Term::~Term() {
 	// No specific cleanup needed
-}
-
-int Term::pushDialect(string name, Dialect::Factory factory) {
-	// Register a new dialect with the given name and factory function
-	dialects.push_back(Dialect(name, factory));
-	// Return the index of the newly registered dialect
-	return (int)dialects.size()-1;
-}
-
-int Term::findDialect(string name) {
-	// Search for a dialect with the given name
-	for (int i = 0; i < (int)dialects.size(); i++) {
-		if (dialects[i].name == name) {
-			return i;
-		}
-	}
-	// Return NONE if no matching dialect is found
-	return -1;
-}
-
-int Term::getDialect(string name, Dialect::Factory factory) {
-	int result = findDialect(name);
-	if (result != -1) {
-		return result;
-	}
-	return pushDialect(name, factory);
 }
 
 int Term::createVariant(Variant var) {

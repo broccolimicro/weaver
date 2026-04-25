@@ -65,4 +65,19 @@ void SymbolTable::popScope() {
 	
 }*/
 
+Instance SymbolTable::find(string name) const {
+	int i = curr;
+	int index = Scope::NOTFOUND;
+	while (index == Scope::NOTFOUND and i >= 0) {
+		index = scope[i].find(name);
+		if (index == Scope::NOTFOUND) {
+			i = scope[i].parent;
+		}
+	}
+	if (i >= 0 and index >= 0) {
+		return scope[i].tbl[index];
+	}
+	return Instance();
+}
+
 }

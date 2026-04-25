@@ -27,24 +27,36 @@ struct Source {
 };
 
 struct Filetype {
-	// Project &proj, string path, string buffer
+	// Project &proj, string path, string buffer, std::any data
 	typedef void (*Parser)(Project &, Source &, string);
-	// Project &proj, Program &prgm, string path, parse::syntax *syntax
-	typedef void (*Loader)(Project &, Program &, const Source &source);
+	// Project &proj, Program &prgm, string path, parse::syntax *syntax, std::any data
+	typedef void (*Loader)(Project &, Program &, const Source &);
 	// Program &prgm, int modIdx, int termIdx
-	typedef void (*Writer)(fs::path, Project &, const Program &, int, int, int);
+	typedef void (*Writer)(fs::path, Project &, const Filetype &, const Program &, int, int, int);
 
 	Filetype();
-	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write);
+	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write, std::any data = std::any());
 	~Filetype();
 
 	string dialect;
 	string ext;
 	string build;
 
+	std::any data;
+
 	Parser read;
 	Loader load;
 	Writer write;
+
+	template <typename T>
+	const T *as() const {
+		return std::any_cast<T>(&data);
+	}
+
+	template <typename T>
+	T *as() {
+		return std::any_cast<T>(&data);
+	}
 };
 
 struct Tech {
@@ -54,8 +66,13 @@ struct Tech {
 	std::any def;
 
 	template <typename T>
-	T &as() {
-		return std::any_cast<T&>(def);
+	const T *as() const {
+		return std::any_cast<T>(&def);
+	}
+
+	template <typename T>
+	T *as() {
+		return std::any_cast<T>(&def);
 	}
 };
 
@@ -84,7 +101,7 @@ struct Project {
 
 	Tech tech;
 
-	int pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr);	
+	int pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, std::any data=std::any());	
 	const Filetype *getExtension(string ext) const;
 	const Filetype *getDialect(string dialect) const;
 

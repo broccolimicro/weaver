@@ -11,13 +11,14 @@ Filetype::Filetype() {
 	write = nullptr;
 }
 
-Filetype::Filetype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write) {
+Filetype::Filetype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, std::any data) {
 	this->dialect = dialect;
 	this->ext = ext;
 	this->build = build;
 	this->read = read;
 	this->load = load;
 	this->write = write;
+	this->data = data;
 }
 
 Filetype::~Filetype() {
@@ -54,9 +55,9 @@ Project::Project(fs::path root) {
 Project::~Project() {
 }
 
-int Project::pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write) {
+int Project::pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, std::any data) {
 	// Register a new dialect with the given name and factory function
-	filetypes.push_back(Filetype(dialect, ext, build, read, load, write));
+	filetypes.push_back(Filetype(dialect, ext, build, read, load, write, data));
 	// Return the index of the newly registered dialect
 	return (int)filetypes.size()-1;
 }
@@ -192,7 +193,7 @@ bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) {
 	const weaver::Term &term = mod.terms[termIdx];
 	const weaver::Variant &variant = term.variants[varIdx];
 
-	auto filetype = getDialect(variant.meta.dialect());
+	auto filetype = getDialect(variant.meta.dialect);
 	if (filetype == nullptr or filetype->write == nullptr) {
 		return false;
 	}
@@ -201,7 +202,7 @@ bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) {
 	std::filesystem::create_directories(emitDir.string());
 
 	string filename = term.decl.name + "." + filetype->ext;
-	filetype->write((emitDir / filename).string(), *this, prgm, modIdx, termIdx, varIdx);
+	filetype->write((emitDir / filename).string(), *this, *filetype, prgm, modIdx, termIdx, varIdx);
 	return true;
 }
 
@@ -209,7 +210,7 @@ void Project::save(Program &prgm) {
 	for (int i = 0; i < (int)prgm.mods.size(); i++) {
 		for (int j = 0; j < (int)prgm.mods[i].terms.size(); j++) {
 			for (int k = 0; k < (int)prgm.mods[i].terms[j].variants.size(); k++) {
-				if (prgm.mods[i].terms[j].variants[k].meta.kind < 0) {
+				if (prgm.mods[i].terms[j].variants[k].meta.dialect.empty()) {
 					printf("internal:%s:%d: dialect not defined for term '%s'\n", __FILE__, __LINE__, prgm.mods[i].terms[j].decl.name.c_str());
 					continue;
 				}

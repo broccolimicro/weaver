@@ -13,58 +13,44 @@
 
 namespace weaver {
 
-// The dialect system allows for multiple language representations of
-// term definitions. Each dialect has its own syntax and semantics, but
-// shares the common term declaration structure. This enables support
-// for different hardware description languages within the same framework.
-struct Dialect {
-	// Factory function type for creating term implementations from syntax
-	typedef std::any (*Factory)(string name, const parse::syntax*, tokenizer*);
-
-	Dialect();
-	Dialect(string name, Factory factory);
-	~Dialect();
-	
-	string name;    // Name of the dialect (e.g., "chp", "hse", "prs")
-	Factory factory; // Factory function to create dialect-specific term definition
-};
-
 struct Variant {
-	std::any def;
+	// Depending on the dialect, this could be one of two things:
+	// 1. if the lib is defined for this dialect, then this is an index
+	//    into the appropriate lib in Program::libs[meta.dialect]
+	// 2. if the lib is not defined for this dialect, then this is a
+	//    process definition for that dialect independent of the lib
+	std::any index;
+
 	Metadata meta;
 
 	int super; // variant this was derived from
 	std::vector<int> derived; // set of derived variants
 
-	Variant(Metadata meta, std::any def=std::any(), int super=-1);
-	Variant(std::string dialect, std::any def=std::any(), int super=-1);
-	Variant(int kind, std::any def=std::any(), int super=-1);
+	Variant(Metadata meta, std::any index=std::any(), int super=-1);
+	Variant(std::string dialect, std::any index=std::any(), int super=-1);
 	~Variant();
 
 	operator bool() const;
 
 	template <typename T>
 	void set(const T &value) {
-		def = value;
+		index = value;
 	}
 
 	template <typename T>
 	T &as() {
-		return std::any_cast<T&>(def);
+		return std::any_cast<T&>(index);
 	}
 
 	template <typename T>
 	const T &as() const {
-		return std::any_cast<const T&>(def);
+		return std::any_cast<const T&>(index);
 	}
 };
 
 // Term represents a function/process definition in the program
 // This includes both the declaration and the implementation
 struct Term {
-	// Global registry of all available dialects
-	static vector<Dialect> dialects;
-
 	// Implements relationships between terms. If one term implements
 	// another, then their high-level behaviors should be equivalent within
 	// the valid set of environments.
@@ -81,16 +67,6 @@ struct Term {
 	Term();
 	Term(string name, vector<Instance> args, TypeId ret=TypeId(), TypeId recv=TypeId());
 	~Term();
-
-	// Registers a new dialect with a name and factory function
-	// Returns the index of the newly registered dialect
-	static int pushDialect(string name, Dialect::Factory factory);
-	
-	// Finds a dialect by name
-	// Returns the index of the dialect, or NONE if not found
-	static int findDialect(string name);
-
-	static int getDialect(string name, Dialect::Factory factory = nullptr);
 
 	int createVariant(Variant var);
 

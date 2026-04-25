@@ -26,7 +26,7 @@ struct Target {
 };
 
 struct Predicate {
-	int kind;
+	std::string dialect;
 	boolean::cover expr;
 };
 
@@ -39,7 +39,7 @@ struct ReducePass {
 	Predicate guard;
 	boolean::cover depend;
 
-	int kind;
+	std::string dialect;
 	boolean::cube action;
 };
 
@@ -54,7 +54,7 @@ struct RotatePass {
 };
 
 struct State {
-	int kind;
+	std::string dialect;
 	boolean::cube props;
 };
 

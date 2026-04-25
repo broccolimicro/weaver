@@ -50,21 +50,6 @@ void Module::print() const {
 	printf("}\n");
 }
 
-Instance SymbolTable::find(string name) const {
-	int i = curr;
-	int index = Scope::NOTFOUND;
-	while (index == Scope::NOTFOUND and i >= 0) {
-		index = scope[i].find(name);
-		if (index == Scope::NOTFOUND) {
-			i = scope[i].parent;
-		}
-	}
-	if (i >= 0 and index >= 0) {
-		return scope[i].tbl[index];
-	}
-	return Instance();
-}
-
 Program::Program() {
 	global = -1;
 }
@@ -94,6 +79,19 @@ int Program::getModule(string name) {
 	}
 
 	return result;
+}
+
+std::any *Program::findLib(string name) {
+	auto pos = libs.find(name);
+	if (pos == libs.end()) {
+		return nullptr;
+	}
+	return &pos->second;
+}
+
+std::any *Program::getLib(string name, std::any lib) {
+	auto pos = libs.insert({name, lib});
+	return &pos.first->second;
 }
 
 TypeId Program::findType(string mod, string name, int index) const {

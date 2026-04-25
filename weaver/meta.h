@@ -9,13 +9,7 @@ namespace weaver {
 
 // This is used to store data from analysis passes.
 struct Metadata {
-	enum {
-		NONE = -2,       // Invalid term kind
-		CONTEXT = -1,    // Context term (special term type for handling contexts)
-		PROCESS = 0,     // Process term (regular function/process)
-	};
-
-	int kind;
+	std::string dialect;
 
 	// This stores two different things:
 	// 1. an analysis where i->first is the name and
@@ -27,10 +21,8 @@ struct Metadata {
 	std::map<std::string, std::any> props;
 	double cost;
 
-	Metadata(int kind=-1);
+	Metadata(std::string dialect="");
 	~Metadata(); 
-
-	std::string dialect() const;
 
 	void set(std::string name);
 	bool has(std::string name) const;
