@@ -246,10 +246,11 @@ void loadGlobalTypes(Program &prgm) {
 	// The global module contains fundamental interfaces that form
 	// the base of the type system. These are kept in the global scope
 	// so they are accessible from all modules.
-	glob.types.push_back(Type::interfaceOf("chan"));    // Channel interface for communication
-	glob.types.push_back(Type::interfaceOf("fixed"));   // Fixed-point number interface
-	glob.types.push_back(Type::interfaceOf("ufixed"));  // Unsigned fixed-point number interface
+	glob.types.push_back(Type::interfaceOf("wire"));    // Wire interface
 	glob.types.push_back(Type::interfaceOf("bool"));    // Boolean interface
+	glob.types.push_back(Type::interfaceOf("ufixed"));  // Unsigned fixed-point number interface
+	glob.types.push_back(Type::interfaceOf("fixed"));   // Fixed-point number interface
+	glob.types.push_back(Type::interfaceOf("chan"));    // Channel interface for communication
 	prgm.mods.push_back(glob);
 	prgm.global = (int)prgm.mods.size()-1;
 }
