@@ -2,21 +2,21 @@
 
 namespace weaver {
 
-Variant::Variant(Metadata meta, std::any index, int super) : meta(meta) {
+Variant::Variant(Metadata meta, std::any def, int super) : meta(meta) {
 	this->super = super;
-	this->index = index;
+	this->def = def;
 }
 
-Variant::Variant(std::string dialect, std::any index, int super) : meta(dialect) {
+Variant::Variant(std::string dialect, std::any def, int super) : meta(dialect) {
 	this->super = super;
-	this->index = index;
+	this->def = def;
 }
 
 Variant::~Variant() {
 }
 
 Variant::operator bool() const {
-	return index.has_value();
+	return def.has_value();
 }
 
 Term::Term() {

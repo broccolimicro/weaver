@@ -81,19 +81,6 @@ int Program::getModule(string name) {
 	return result;
 }
 
-std::any *Program::findLib(string name) {
-	auto pos = libs.find(name);
-	if (pos == libs.end()) {
-		return nullptr;
-	}
-	return &pos->second;
-}
-
-std::any *Program::getLib(string name, std::any lib) {
-	auto pos = libs.insert({name, lib});
-	return &pos.first->second;
-}
-
 TypeId Program::findType(string mod, string name, int index) const {
 	if (name.empty()) {
 		return TypeId();
@@ -171,6 +158,34 @@ vector<TermId> Program::findTerms(Prototype proto, int index) const {
 	return result;
 }
 
+Typename Program::getTypename(TypeId idx, std::vector<int> size) const {
+	Typename result;
+	result.mod = modAt(idx).name;
+	result.name = typeAt(idx).name;
+	result.size = size;
+	return result;
+}
+
+Typename Program::getTypename(const Instance &inst) const {
+	return getTypename(inst.type, inst.size);
+}
+
+Prototype Program::getPrototype(const Decl &decl, std::string mod) {
+	Prototype result;
+	result.mod = mod;
+	result.name = decl.name;
+	result.recv = getTypename(decl.recv);
+	for (auto i = decl.args.begin(); i != decl.args.end(); i++) {
+		result.args.push_back(getTypename(*i));
+	}
+	result.unqualified = false;
+	return result; 
+}
+
+Prototype Program::getPrototype(TermId idx) const {
+	return getPrototype(termAt(idx).decl, modAt(idx).name);
+}
+
 TermId Program::begin() const {
 	return next(TermId(0, -1));
 }
@@ -196,8 +211,16 @@ TermId Program::end() const {
 	return TermId();
 }
 
+const Module &Program::modAt(TypeId idx) const {
+	return mods[idx.mod];
+}
+
 const Type &Program::typeAt(TypeId idx) const {
 	return mods[idx.mod].types[idx.index];
+}
+
+Module &Program::modAt(TypeId idx) {
+	return mods[idx.mod];
 }
 
 Type &Program::typeAt(TypeId idx) {

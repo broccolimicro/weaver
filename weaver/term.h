@@ -14,37 +14,32 @@
 namespace weaver {
 
 struct Variant {
-	// Depending on the dialect, this could be one of two things:
-	// 1. if the lib is defined for this dialect, then this is an index
-	//    into the appropriate lib in Program::libs[meta.dialect]
-	// 2. if the lib is not defined for this dialect, then this is a
-	//    process definition for that dialect independent of the lib
-	std::any index;
+	std::any def;
 
 	Metadata meta;
 
 	int super; // variant this was derived from
 	std::vector<int> derived; // set of derived variants
 
-	Variant(Metadata meta, std::any index=std::any(), int super=-1);
-	Variant(std::string dialect, std::any index=std::any(), int super=-1);
+	Variant(Metadata meta, std::any def=std::any(), int super=-1);
+	Variant(std::string dialect, std::any def=std::any(), int super=-1);
 	~Variant();
 
 	operator bool() const;
 
 	template <typename T>
 	void set(const T &value) {
-		index = value;
+		def = value;
 	}
 
 	template <typename T>
 	T &as() {
-		return std::any_cast<T&>(index);
+		return std::any_cast<T&>(def);
 	}
 
 	template <typename T>
 	const T &as() const {
-		return std::any_cast<const T&>(index);
+		return std::any_cast<const T&>(def);
 	}
 };
 

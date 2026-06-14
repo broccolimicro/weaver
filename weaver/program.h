@@ -46,14 +46,6 @@ struct Program {
 
 	vector<Module> mods;  // All modules in the program
 
-	// The dialect system allows for multiple language representations of
-	// term definitions. Each dialect has its own syntax and semantics, but
-	// shares the common term declaration structure. This enables support
-	// for different hardware description languages within the same framework.
-	// Global registry of all available dialects (dialect -> lib). If a lib is
-	// not defined for a particular dialect, then that dialect does not need or
-	// use a lib.
-	map<string, std::any> libs;
 	int global;  // Index of the global module containing built-in types
 
 	int pushModule(string name);
@@ -62,37 +54,6 @@ struct Program {
 	// Creates a new module with the given name
 	// Returns the index of the newly created module
 	int getModule(string name);
-
-	// Registers a new dialect with a name and factory function
-	// Returns the index of the newly registered dialect
-	template <typename T>
-	T *pushLib(string name, T lib) {
-		auto pos = libs.insert({name, lib});
-		if (pos.second) {
-			return std::any_cast<T>(&pos.first->second);
-		}
-		return nullptr;
-	}
-	
-	// Finds a dialect by name
-	// Returns the index of the dialect, or NONE if not found
-	template <typename T>
-	T *findLib(string name) {
-		auto pos = libs.find(name);
-		if (pos == libs.end()) {
-			return nullptr;
-		}
-		return std::any_cast<T>(&pos->second);
-	}	
-
-	template <typename T>
-	T *getLib(string name, T lib=T()) {
-		auto pos = libs.insert({name, lib});
-		return std::any_cast<T>(&pos.first->second);
-	}
-
-	std::any *findLib(string name);
-	std::any *getLib(string name, std::any lib=std::any());
 
 	// Finds a type across all modules by its qualified name
 	// First searches in the global module, then in the module at 'index'
@@ -108,14 +69,21 @@ struct Program {
 	// Find all terms that match this prototype
 	vector<TermId> findTerms(Prototype proto, int index=-1) const;
 
+	Typename getTypename(TypeId idx, std::vector<int> size=std::vector<int>()) const;
+	Typename getTypename(const Instance &inst) const;
+	Prototype getPrototype(const Decl &decl, std::string mod="") const;
+	Prototype getPrototype(TermId idx) const;
+
 	TermId begin() const;
 	TermId next(TermId idx) const;
 	TermId end() const;
 
 	// Returns a const reference to the type at the specified TypeId
+	const Module &modAt(TypeId idx) const;
 	const Type &typeAt(TypeId idx) const;
 	
 	// Returns a mutable reference to the type at the specified TypeId
+	Module &modAt(TypeId idx);
 	Type &typeAt(TypeId idx);
 
 	// Returns a const reference to the term at the specified TermId
