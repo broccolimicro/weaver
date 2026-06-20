@@ -60,10 +60,12 @@ struct Term {
 	std::vector<Variant> variants; // Dialect-specific definitions of the term
 
 	Term();
+	Term(Decl decl);
 	Term(string name, vector<Instance> args, TypeId ret=TypeId(), TypeId recv=TypeId());
 	~Term();
 
 	int createVariant(Variant var);
+	int rfindVariant(std::string dialect, int from=-1);
 
 	// Prints the term details for debugging
 	void print() const;

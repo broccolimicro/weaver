@@ -60,6 +60,7 @@ struct Filetype {
 };
 
 struct Tech {
+	std::string name;
 	std::string path;
 	std::vector<std::string> args;
 	std::string lib;

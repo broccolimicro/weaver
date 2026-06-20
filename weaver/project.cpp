@@ -104,7 +104,6 @@ bool Project::incl(std::string uri) {
 }
 
 bool Project::read(Program &prgm, fs::path path) {
-	cout << "reading " << path << endl;
 	if (not fs::exists(path)) {
 		return false;
 	}
@@ -232,12 +231,16 @@ void Project::setTech(string cmd) {
 	fs::path path;
 	if (name.size() >= 1u and name[0] == '/') {
 		path = name;
+		name = fs::relative(path, rootDir).lexically_normal().string();
 	} else if (name.size() >= 2u and name[0] == '.' and name[1] == '/') {
 		path = workDir / name.substr(2);
+		name = fs::relative(path, rootDir).lexically_normal().string();
 	} else if (name.size() >= 2u and name[0] == '/' and name[1] == '/') {
 		path = rootDir / name.substr(2);
+		name = fs::relative(path, rootDir).lexically_normal().string();
 	} else {
 		path = techDir / name;
+		name = "tech:" + fs::relative(path, techDir).lexically_normal().string();
 	}
 
 	fs::path parent = path;
@@ -252,6 +255,7 @@ void Project::setTech(string cmd) {
 		return;
 	}
 
+	tech.name = name;
 	tech.path = path.string();
 	tech.args = args;
 	if (tech.lib.empty()) {
@@ -287,31 +291,51 @@ void Project::vendor() const {
 void Project::tidy() {
 }
 
-string Project::pathToModule(fs::path path) const {
-	string result;
-	if (not fs::is_directory(path)) {
-		path = path.parent_path();
+string topDir(fs::path path) {
+	if (path.begin() == path.end()) {
+		return "";
 	}
+	return path.begin()->string();
+}
 
-	fs::path dirInModule = fs::relative(path, rootDir);
-	if (dirInModule.lexically_normal() != ".") {
-		result = (fs::path(modName) / dirInModule).string();
-	} else {
-		result = fs::path(modName).string();
+fs::path popTopDir(fs::path path) {
+	fs::path result;
+	if (path.begin() == path.end()) {
+		return result;
+	}
+	for (auto i = std::next(path.begin()); i != path.end(); i++) {
+		result /= *i;
 	}
 	return result;
 }
 
-fs::path Project::pathFromModule(string mod) const {
-	fs::path canon = mod;
-	if (not canon.is_absolute()) {
-		if (mod.rfind(fs::relative(workDir, rootDir).string(), 0) == 0) {
-			canon = rootDir / canon;
-		} else {
-			canon = workDir / canon;
-		}
+string Project::pathToModule(fs::path path) const {
+	if (not fs::is_directory(path)) {
+		path = path.parent_path();
 	}
-	return canon;
+
+	fs::path dirInModule = fs::relative(path, rootDir).lexically_normal();
+	std::string top = topDir(dirInModule);
+	if (top == ".") {
+		return fs::path(modName).string();
+	} else if (top == "src") {
+		dirInModule = popTopDir(dirInModule);
+		if (dirInModule.empty()) {
+			return fs::path(modName).string();
+		}
+		return (fs::path(modName) / dirInModule).string();
+	} else if (top == "dep") {
+		// TODO(edward.bingham) parse the lm.mod file in the vendor directory
+		return popTopDir(dirInModule);
+	}
+	return "";
+}
+
+fs::path Project::pathFromModule(string mod) const {
+	if (mod.rfind(modName+"/", 0) == 0) {
+		return rootDir / "src" / mod.substr(modName.size()+1);
+	}
+	return rootDir / "dep" / mod;
 }
 
 fs::path Project::relpathFromModule(string mod) const {
