@@ -2,26 +2,30 @@
 
 namespace weaver {
 
-Variant::Variant(Metadata meta, std::any index, int super) : meta(meta) {
+Variant::Variant(Metadata meta, std::any def, int super) : meta(meta) {
 	this->super = super;
-	this->index = index;
+	this->def = def;
 }
 
-Variant::Variant(std::string dialect, std::any index, int super) : meta(dialect) {
+Variant::Variant(std::string dialect, std::any def, int super) : meta(dialect) {
 	this->super = super;
-	this->index = index;
+	this->def = def;
 }
 
 Variant::~Variant() {
 }
 
 Variant::operator bool() const {
-	return index.has_value();
+	return def.has_value();
 }
 
 Term::Term() {
 	// Default constructor creates an empty term
 	// variants empty, decl empty, symb empty, index empty
+}
+
+Term::Term(Decl decl) {
+	this->decl = decl;
 }
 
 Term::Term(string name, vector<Instance> args, TypeId ret, TypeId recv) {
@@ -39,6 +43,19 @@ int Term::createVariant(Variant var) {
 		variants[variants.back().super].derived.push_back(result);
 	}
 	return result;
+}
+
+int Term::rfindVariant(std::string dialect, int from) {
+	if (from < 0 or from >= (int)variants.size()) {
+		from = (int)variants.size()-1;
+	}
+
+	for (; from >= 0; from--) {
+		if (variants[from].meta.dialect == dialect) {
+			return from;
+		}
+	}
+	return -1;
 }
 
 void Term::print() const {

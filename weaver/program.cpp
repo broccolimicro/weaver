@@ -2,6 +2,18 @@
 
 namespace weaver {
 
+int Module::getTerm(Decl decl) {
+	vector<int> ids = findTerms(decl);
+	if (ids.empty()) {
+		ids.push_back(createTerm(decl));
+	}
+	if (ids.size() > 1) {
+		warning("", "ambiguous term names", __FILE__, __LINE__);
+	}
+
+	return ids[0];
+}
+
 int Module::createTerm(Term term) {
 	terms.push_back(term);
 	return (int)terms.size()-1;
@@ -81,19 +93,6 @@ int Program::getModule(string name) {
 	return result;
 }
 
-std::any *Program::findLib(string name) {
-	auto pos = libs.find(name);
-	if (pos == libs.end()) {
-		return nullptr;
-	}
-	return &pos->second;
-}
-
-std::any *Program::getLib(string name, std::any lib) {
-	auto pos = libs.insert({name, lib});
-	return &pos.first->second;
-}
-
 TypeId Program::findType(string mod, string name, int index) const {
 	if (name.empty()) {
 		return TypeId();
@@ -156,7 +155,7 @@ vector<TermId> Program::findTerms(Prototype proto, int index) const {
 
 		if (result.empty() and index >= 0) {
 			for (int term : mods[index].findTerms(findDecl(proto))) {
-				result.push_back(TermId(global, term));
+				result.push_back(TermId(index, term));
 			}
 		}
 		return result;
@@ -165,10 +164,70 @@ vector<TermId> Program::findTerms(Prototype proto, int index) const {
 	index = findModule(proto.mod);
 	if (index >= 0) {
 		for (int term : mods[index].findTerms(findDecl(proto))) {
-			result.push_back(TermId(global, term));
+			result.push_back(TermId(index, term));
 		}
 	}
 	return result;
+}
+
+TermId Program::getTerm(Prototype proto, int index) {
+	vector<weaver::TermId> ids = findTerms(proto, index);
+		
+	if (ids.empty()) {
+		int mod = getModule(proto.mod);
+		vector<weaver::Instance> args;
+		weaver::TypeId recv;
+		if (not proto.unqualified) {
+			// TODO(edward.bingham) add variable names by looking at ports
+			for (auto arg = proto.args.begin(); arg != proto.args.end(); arg++) {
+				args.push_back(findInstance(*arg, "", mod));
+			}
+			recv = findType("", proto.recv, mod);
+		}
+
+		int idx = mods[mod].createTerm(weaver::Term(proto.name, args, weaver::TypeId(), recv));
+		ids.push_back(weaver::TermId(mod, idx));
+	}
+
+	if (ids.size() > 1u) {
+		error("", "ambiguous process names", __FILE__, __LINE__);
+	}
+	return ids[0];
+}
+
+Typename Program::getTypename(TypeId idx, std::vector<int> size) const {
+	Typename result;
+	if (typeValid(idx)) {
+		result.mod = modAt(idx).name;
+		result.name = typeAt(idx).name;
+	}
+	result.size = size;
+	return result;
+}
+
+Typename Program::getTypename(const Instance &inst) const {
+	return getTypename(inst.type, inst.size);
+}
+
+Prototype Program::getPrototype(const Decl &decl, std::string mod) const {
+	Prototype result;
+	result.mod = mod;
+	result.name = decl.name;
+	if (typeValid(decl.recv)) {
+		result.recv = typeAt(decl.recv).name;
+	}
+	for (auto i = decl.args.begin(); i != decl.args.end(); i++) {
+		result.args.push_back(getTypename(*i));
+	}
+	result.unqualified = false;
+	return result; 
+}
+
+Prototype Program::getPrototype(TermId idx) const {
+	if (not termValid(idx)) {
+		return Prototype();
+	}
+	return getPrototype(termAt(idx).decl, modAt(idx).name);
 }
 
 TermId Program::begin() const {
@@ -196,8 +255,36 @@ TermId Program::end() const {
 	return TermId();
 }
 
+bool Program::modValid(TypeId idx) const {
+	return idx.mod >= 0 and idx.mod < (int)mods.size();
+}
+
+bool Program::typeValid(TypeId idx) const {
+	return modValid(idx) and idx.index >= 0 and idx.index < (int)mods[idx.mod].types.size();
+}
+
+bool Program::modValid(TermId idx) const {
+	return idx.mod >= 0 and idx.mod < (int)mods.size();
+}
+
+bool Program::termValid(TermId idx) const {
+	return modValid(idx) and idx.index >= 0 and idx.index < (int)mods[idx.mod].terms.size();
+}
+
+bool Program::varValid(TermId idx) const {
+	return termValid(idx) and idx.var >= 0 and idx.var < (int)mods[idx.mod].terms[idx.index].variants.size();
+}
+
+const Module &Program::modAt(TypeId idx) const {
+	return mods[idx.mod];
+}
+
 const Type &Program::typeAt(TypeId idx) const {
 	return mods[idx.mod].types[idx.index];
+}
+
+Module &Program::modAt(TypeId idx) {
+	return mods[idx.mod];
 }
 
 Type &Program::typeAt(TypeId idx) {
@@ -226,6 +313,10 @@ Term &Program::termAt(TermId idx) {
 
 Variant &Program::varAt(TermId idx) {
 	return mods[idx.mod].terms[idx.index].variants[idx.var];
+}
+
+TermId Program::getTerm(int mod, Decl decl) {
+	return TermId(mod, mods[mod].getTerm(decl));
 }
 
 TermId Program::createTerm(int mod, Term term) {
