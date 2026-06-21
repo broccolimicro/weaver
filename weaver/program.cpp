@@ -1,6 +1,14 @@
 #include "program.h"
+#include <common/hash.h>
 
 namespace weaver {
+
+Module::Module() {
+	isTech = false;
+}
+
+Module::~Module() {
+}
 
 int Module::getTerm(Decl decl) {
 	vector<int> ids = findTerms(decl);
@@ -323,9 +331,172 @@ TermId Program::createTerm(int mod, Term term) {
 	return TermId(mod, mods[mod].createTerm(term));
 }
 
+std::string Program::mangleName(TermId id) const {
+	if (not termValid(id)) {
+		return "undef";
+	}
+	std::string result;// = modAt(id).name;
+	/*if (not result.empty()) {
+		result += ".";
+	}*/
+
+	auto &term = termAt(id);
+	if (typeValid(term.decl.recv)) {
+		result += typeAt(term.decl.recv).name + "-";
+	}
+	result += term.decl.name;
+
+	::hasher h;
+	int count = term.decl.args.size();
+	h.put(&count);
+	for (auto i = term.decl.args.begin(); i != term.decl.args.end(); i++) {
+		auto arg = getTypename(*i);
+		h.put(arg.mod + "." + arg.name);
+		for (int sz : arg.size) {
+			h.put(&sz);
+		}
+	}
+
+	result += "-" + encodeBase32(h.get());
+	return result;
+}
+
+Prototype Program::parseMangledName(std::string mangle) const {
+	Prototype result;
+
+	// drop the hashed argument list
+	size_t pos = mangle.find_last_of('-');
+	if (pos == string::npos) {
+		result.name = mangle;
+		return result;
+	}
+
+	mangle = mangle.substr(0, pos);
+
+	// set the name
+	pos = mangle.find_last_of('-');
+	if (pos == string::npos) {
+		result.name = mangle;
+		return result;
+	}
+
+	result.name = mangle.substr(pos+1);
+	mangle = mangle.substr(0, pos);
+
+	// set the receiver
+	/*pos = mangle.find_last_of('.');
+	if (pos == string::npos) {
+		result.recv = mangle;
+		return result;
+	}
+
+	result.recv = mangle.substr(pos+1);
+	mangle = mangle.substr(0, pos);
+
+	// set the module
+	result.mod = mangle;*/
+	result.recv = mangle;
+	return result;
+}
+
+void Program::print(TermId id) const {
+	std::string result = "undef";
+	if (termValid(id)) {
+		result = getPrototype(id).to_string();
+	}
+	printf("%s", result.c_str());
+}
+
+void Program::print(TypeId id) const {
+	std::string result = "void";
+	if (typeValid(id)) {
+		result = typeAt(id).name;
+	}
+	printf("%s", result.c_str());
+}
+
+void Program::print(const Decl &decl) const {
+	if (typeValid(decl.recv)) {
+		print(decl.recv);
+		printf("::");
+	}
+	printf("%s(", decl.name.c_str());
+	for (int i = 0; i < (int)decl.args.size(); i++) {
+		if (i != 0) {
+			printf(", ");
+		}
+		print(decl.args[i]);
+	}
+	printf(") ");
+	print(decl.ret);
+}
+
+void Program::print(const Instance &inst) const {
+	print(inst.type);
+	printf(" %s", inst.name.c_str());
+	for (int i = 0; i < (int)inst.size.size(); i++) {
+		printf("[%d]", inst.size[i]);
+	}
+}
+
+void Program::print(const Type &type) const {
+	std::string typestr = "invalid";
+	if (type.kind == -1) {
+		typestr = "interface";
+	} else if (type.kind >= 0) {
+		typestr = "type";
+	}
+
+	// Print type details for debugging
+	printf("%s %s {\n", typestr.c_str(), type.name.c_str());
+	// Print all data members
+	for (int i = 0; i < (int)type.members.size(); i++) {
+		printf("instance ");
+		print(type.members[i]);
+		printf("\n");
+	}
+	// Print all methods
+	for (int i = 0; i < (int)type.methods.size(); i++) {
+		printf("decl ");
+		print(type.methods[i]);
+		printf("\n");
+	}
+	printf("}\n");
+}
+
+void Program::print(const Term &term) const {
+	// Print term details for debugging
+	printf("term ");
+	print(term.decl);
+	printf("\n");
+	for (int i = 0; i < (int)term.variants.size(); i++) {
+		printf("\t%d: ", i);
+		term.variants[i].meta.print();
+		printf(" -> {");
+		for (int j = 0; j < (int)term.variants[i].derived.size(); j++) {
+			if (j != 0) {
+				printf(" ");
+			}
+			printf("%d", term.variants[i].derived[j]);
+		}
+		printf("}\n");
+	}
+}
+
+void Program::print(const Module &mod) const {
+	printf("module %s {\n", mod.name.c_str());
+	for (int i = 0; i < (int)mod.types.size(); i++) {
+		print(mod.types[i]);
+	}
+	for (int i = 0; i < (int)mod.terms.size(); i++) {
+		print(mod.terms[i]);
+	}
+	printf("}\n");
+}
+
 void Program::print() const {
 	for (int i = 0; i < (int)mods.size(); i++) {
-		mods[i].print();
+		print(mods[i]);
 	}
 }
 

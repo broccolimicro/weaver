@@ -19,6 +19,10 @@ struct Module {
 	vector<Term> terms;  // Collection of function/process definitions in this module
 	vector<Type> types;  // Collection of types defined in this module
 	vector<pair<string, string> > aliases;  // Type aliases for this module
+	bool isTech;
+
+	Module();
+	~Module();
 
 	int getTerm(Decl decl);
 	// Creates a new term (function/process) in this module
@@ -107,7 +111,17 @@ struct Program {
 	TermId getTerm(int mod, Decl decl);
 	TermId createTerm(int mod, Term term);
 
+	std::string mangleName(TermId id) const;
+	Prototype parseMangledName(std::string mangle) const;
+
 	// Prints the program contents for debugging
+	void print(TermId id) const;
+	void print(TypeId id) const;
+	void print(const Decl &decl) const;
+	void print(const Instance &inst) const;
+	void print(const Type &type) const;
+	void print(const Term &term) const;
+	void print(const Module &mod) const;
 	void print() const;
 };
 

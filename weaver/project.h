@@ -34,10 +34,6 @@ struct Filetype {
 	// Program &prgm, int modIdx, int termIdx
 	typedef void (*Writer)(fs::path, Project &, const Filetype &, const Program &, int, int, int);
 
-	Filetype();
-	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write, std::any data = std::any());
-	~Filetype();
-
 	string dialect;
 	string ext;
 	string build;
@@ -47,6 +43,17 @@ struct Filetype {
 	Parser read;
 	Loader load;
 	Writer write;
+
+	enum ConsolidationLevel {
+		PROJECT = 0,
+		MODULE = 1,
+		TERM = 2,
+	};
+	ConsolidationLevel level;
+
+	Filetype();
+	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write, ConsolidationLevel level=TERM, std::any data = std::any());
+	~Filetype();
 
 	template <typename T>
 	const T *as() const {
@@ -102,15 +109,16 @@ struct Project {
 
 	Tech tech;
 
-	int pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, std::any data=std::any());	
+	int pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, Filetype::ConsolidationLevel level=Filetype::TERM, std::any data=std::any());	
 	const Filetype *getExtension(string ext) const;
-	const Filetype *getDialect(string dialect) const;
+	std::vector<const Filetype *> getDialect(string dialect) const;
 
 	bool incl(std::string uri);
 	bool read(Program &prgm, fs::path path);
 	bool load(Program &prgm);
 
 	bool save(Program &prgm, int modIdx, int termIdx, int varIdx);
+	void save(Program &prgm, int modIdx, int termIdx);
 	void save(Program &prgm);
 
 	void setTech(string cmd);

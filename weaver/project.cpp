@@ -9,9 +9,10 @@ Filetype::Filetype() {
 	read = nullptr;
 	load = nullptr;
 	write = nullptr;
+	level = TERM;
 }
 
-Filetype::Filetype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, std::any data) {
+Filetype::Filetype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, ConsolidationLevel level, std::any data) {
 	this->dialect = dialect;
 	this->ext = ext;
 	this->build = build;
@@ -19,6 +20,7 @@ Filetype::Filetype(string dialect, string ext, string build, Filetype::Parser re
 	this->load = load;
 	this->write = write;
 	this->data = data;
+	this->level = level;
 }
 
 Filetype::~Filetype() {
@@ -55,9 +57,9 @@ Project::Project(fs::path root) {
 Project::~Project() {
 }
 
-int Project::pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, std::any data) {
+int Project::pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, Filetype::ConsolidationLevel level, std::any data) {
 	// Register a new dialect with the given name and factory function
-	filetypes.push_back(Filetype(dialect, ext, build, read, load, write, data));
+	filetypes.push_back(Filetype(dialect, ext, build, read, load, write, level, data));
 	// Return the index of the newly registered dialect
 	return (int)filetypes.size()-1;
 }
@@ -71,13 +73,14 @@ const Filetype *Project::getExtension(string ext) const {
 	return nullptr;
 }
 
-const Filetype *Project::getDialect(string dialect) const {
+std::vector<const Filetype*> Project::getDialect(string dialect) const {
+	std::vector<const Filetype*> result;
 	for (int i = 0; i < (int)filetypes.size(); i++) {
 		if (filetypes[i].dialect == dialect) {
-			return &filetypes[i];
+			result.push_back(&filetypes[i]);
 		}
 	}
-	return nullptr;
+	return result;
 }
 
 bool Project::incl(std::string uri) {
@@ -192,28 +195,84 @@ bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) {
 	const weaver::Term &term = mod.terms[termIdx];
 	const weaver::Variant &variant = term.variants[varIdx];
 
-	auto filetype = getDialect(variant.meta.dialect);
+	auto filetypes = getDialect(variant.meta.dialect);
+	const Filetype *filetype = nullptr;
+	for (int i = 0; i < (int)filetypes.size(); i++) {
+		if (filetypes[i]->write != nullptr) {
+			filetype = filetypes[i];
+			break;
+		}
+	}
+
 	if (filetype == nullptr or filetype->write == nullptr) {
 		return false;
 	}
 
-	fs::path emitDir = rootDir / BUILD / rootpathFromModule(mod.name);
-	std::filesystem::create_directories(emitDir.string());
+	if (filetype->level == Filetype::PROJECT) {
+		fs::path emitDir = rootDir / BUILD / rootpathFromModule(modName);
+		std::filesystem::create_directories(emitDir.string());
+		
+		string filename = "project." + filetype->ext;
+		filetype->write((emitDir / filename).string(), *this, *filetype, prgm, modIdx, termIdx, varIdx);
+	} else if (filetype->level == Filetype::MODULE) {
+		fs::path emitDir = rootDir / BUILD / rootpathFromModule(mod.name);
+		std::filesystem::create_directories(emitDir.string());
+		
+		string filename = "module." + filetype->ext;
+		filetype->write((emitDir / filename).string(), *this, *filetype, prgm, modIdx, termIdx, varIdx);
 
-	string filename = term.decl.name + "." + filetype->ext;
-	filetype->write((emitDir / filename).string(), *this, *filetype, prgm, modIdx, termIdx, varIdx);
+	} else {
+		fs::path emitDir = rootDir / BUILD / rootpathFromModule(mod.name);
+		std::filesystem::create_directories(emitDir.string());
+
+		string filename = prgm.mangleName({modIdx, termIdx, varIdx}) + "." + filetype->ext;
+		filetype->write((emitDir / filename).string(), *this, *filetype, prgm, modIdx, termIdx, varIdx);
+	}
 	return true;
+}
+
+void Project::save(Program &prgm, int modIdx, int termIdx) {
+	if (prgm.mods[modIdx].terms[termIdx].variants.empty()) {
+		return;
+	}
+
+	auto &term = prgm.mods[modIdx].terms[termIdx];
+
+	std::vector<int> stack(1, 0);
+	while (not stack.empty()) {
+		int curr = stack.back();
+		stack.pop_back();
+
+		auto &var = term.variants[curr];
+
+		bool doExport = true;
+		for (int next : var.derived) {
+			if (next < 0 or next >= (int)term.variants.size()) {
+				continue;
+			}
+
+			stack.push_back(next);
+			if (var.meta.dialect == term.variants[next].meta.dialect) {
+				doExport = false;
+			}
+		}
+
+		if (var.meta.dialect.empty()) {
+			printf("internal:%s:%d: dialect not defined for term '%s'\n", __FILE__, __LINE__, prgm.mods[modIdx].terms[termIdx].decl.name.c_str());
+			continue;
+		}
+
+		if (doExport) {
+			save(prgm, modIdx, termIdx, curr);
+		}
+	}
 }
 
 void Project::save(Program &prgm) {
 	for (int i = 0; i < (int)prgm.mods.size(); i++) {
 		for (int j = 0; j < (int)prgm.mods[i].terms.size(); j++) {
-			for (int k = 0; k < (int)prgm.mods[i].terms[j].variants.size(); k++) {
-				if (prgm.mods[i].terms[j].variants[k].meta.dialect.empty()) {
-					printf("internal:%s:%d: dialect not defined for term '%s'\n", __FILE__, __LINE__, prgm.mods[i].terms[j].decl.name.c_str());
-					continue;
-				}
-				save(prgm, i, j, k);
+			if (not prgm.mods[i].isTech) {
+				save(prgm, i, j);
 			}
 		}
 	}
@@ -240,7 +299,7 @@ void Project::setTech(string cmd) {
 		name = fs::relative(path, rootDir).lexically_normal().string();
 	} else {
 		path = techDir / name;
-		name = "tech:" + fs::relative(path, techDir).lexically_normal().string();
+		name = fs::relative(path, techDir).lexically_normal().string();
 	}
 
 	fs::path parent = path;
@@ -332,7 +391,9 @@ string Project::pathToModule(fs::path path) const {
 }
 
 fs::path Project::pathFromModule(string mod) const {
-	if (mod.rfind(modName+"/", 0) == 0) {
+	if (mod == modName) {
+		return rootDir / "src";
+	} else if (mod.rfind(modName+"/", 0) == 0) {
 		return rootDir / "src" / mod.substr(modName.size()+1);
 	}
 	return rootDir / "dep" / mod;
