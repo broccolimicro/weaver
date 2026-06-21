@@ -1,6 +1,8 @@
 #include "proto.h"
 
 #include <algorithm>
+#include <common/hash.h>
+#include <common/text.h>
 
 namespace weaver {
 
@@ -46,10 +48,12 @@ std::string Typename::to_string() const {
 Prototype::Prototype() {
 	unqualified = true;
 	variant = -1;
+	argsHash = 0;
 }
 
 Prototype::Prototype(std::string proto) {
 	variant = -1;
+	argsHash = 0;
 	parse(proto);
 }
 
@@ -87,6 +91,9 @@ bool Prototype::parse(std::string proto) {
 				return false;
 			}
 		}
+	}
+	if (not unqualified) {
+		hashArgs();
 	}
 
 	size_t rec = proto.rfind("::");
@@ -142,5 +149,76 @@ bool Prototype::empty() const {
 	return name.empty();
 }
 
+size_t Prototype::getHash() const {
+	::hasher h;
+	int count = args.size();
+	h.put(&count);
+	for (const Typename &arg : args) {
+		h.put(arg.mod + "." + arg.name);
+		for (int sz : arg.size) {
+			h.put(&sz);
+		}
+	}
+	return h.get();
+}
+
+void Prototype::hashArgs() {
+	argsHash = getHash();
+}
+
+std::string Prototype::mangle(bool useMod) const {
+	std::string result;
+
+	if (useMod) {
+		result = mod;
+		if (not result.empty()) {
+			result += ".";
+		}
+	}
+
+	if (not recv.empty()) {
+		result += recv + "-";
+	}
+	result += name + "-" + encodeBase32(getHash());
+	return result;
+}
+
+Prototype Prototype::fromMangled(std::string mangle) {
+	Prototype result;
+
+	// drop the hashed argument list
+	size_t pos = mangle.find_last_of('-');
+	if (pos == string::npos) {
+		result.name = mangle;
+		return result;
+	}
+
+	result.argsHash = decodeBase32(mangle.substr(pos+1));
+	mangle = mangle.substr(0, pos);
+
+	// set the name
+	pos = mangle.find_last_of('-');
+	if (pos == string::npos) {
+		result.name = mangle;
+		return result;
+	}
+
+	result.name = mangle.substr(pos+1);
+	mangle = mangle.substr(0, pos);
+
+	// set the receiver
+	pos = mangle.find_last_of('.');
+	if (pos == string::npos) {
+		result.recv = mangle;
+		return result;
+	}
+
+	result.recv = mangle.substr(pos+1);
+	mangle = mangle.substr(0, pos);
+
+	// set the module
+	result.mod = mangle;
+	return result;
+}
 
 }

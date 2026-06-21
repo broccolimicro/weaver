@@ -28,6 +28,7 @@ struct Prototype {
 
 	std::string recv;
 	std::vector<Typename> args;
+	size_t argsHash;
 	bool unqualified;
 
 	int variant;
@@ -35,6 +36,12 @@ struct Prototype {
 	bool parse(std::string proto);
 	std::string to_string() const;
 	bool empty() const;
+
+	size_t getHash() const;
+	void hashArgs();
+
+	std::string mangle(bool useMod=true) const;
+	static Prototype fromMangled(std::string mangle);
 };
 
 }

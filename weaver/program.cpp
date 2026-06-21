@@ -1,5 +1,4 @@
 #include "program.h"
-#include <common/hash.h>
 
 namespace weaver {
 
@@ -228,6 +227,7 @@ Prototype Program::getPrototype(const Decl &decl, std::string mod) const {
 		result.args.push_back(getTypename(*i));
 	}
 	result.unqualified = false;
+	result.hashArgs();
 	return result; 
 }
 
@@ -329,74 +329,6 @@ TermId Program::getTerm(int mod, Decl decl) {
 
 TermId Program::createTerm(int mod, Term term) {
 	return TermId(mod, mods[mod].createTerm(term));
-}
-
-std::string Program::mangleName(TermId id) const {
-	if (not termValid(id)) {
-		return "undef";
-	}
-	std::string result;// = modAt(id).name;
-	/*if (not result.empty()) {
-		result += ".";
-	}*/
-
-	auto &term = termAt(id);
-	if (typeValid(term.decl.recv)) {
-		result += typeAt(term.decl.recv).name + "-";
-	}
-	result += term.decl.name;
-
-	::hasher h;
-	int count = term.decl.args.size();
-	h.put(&count);
-	for (auto i = term.decl.args.begin(); i != term.decl.args.end(); i++) {
-		auto arg = getTypename(*i);
-		h.put(arg.mod + "." + arg.name);
-		for (int sz : arg.size) {
-			h.put(&sz);
-		}
-	}
-
-	result += "-" + encodeBase32(h.get());
-	return result;
-}
-
-Prototype Program::parseMangledName(std::string mangle) const {
-	Prototype result;
-
-	// drop the hashed argument list
-	size_t pos = mangle.find_last_of('-');
-	if (pos == string::npos) {
-		result.name = mangle;
-		return result;
-	}
-
-	mangle = mangle.substr(0, pos);
-
-	// set the name
-	pos = mangle.find_last_of('-');
-	if (pos == string::npos) {
-		result.name = mangle;
-		return result;
-	}
-
-	result.name = mangle.substr(pos+1);
-	mangle = mangle.substr(0, pos);
-
-	// set the receiver
-	/*pos = mangle.find_last_of('.');
-	if (pos == string::npos) {
-		result.recv = mangle;
-		return result;
-	}
-
-	result.recv = mangle.substr(pos+1);
-	mangle = mangle.substr(0, pos);
-
-	// set the module
-	result.mod = mangle;*/
-	result.recv = mangle;
-	return result;
 }
 
 void Program::print(TermId id) const {

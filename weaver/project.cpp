@@ -225,7 +225,7 @@ bool Project::save(Program &prgm, int modIdx, int termIdx, int varIdx) {
 		fs::path emitDir = rootDir / BUILD / rootpathFromModule(mod.name);
 		std::filesystem::create_directories(emitDir.string());
 
-		string filename = prgm.mangleName({modIdx, termIdx, varIdx}) + "." + filetype->ext;
+		string filename = prgm.getPrototype({modIdx, termIdx, varIdx}).mangle(false) + "." + filetype->ext;
 		filetype->write((emitDir / filename).string(), *this, *filetype, prgm, modIdx, termIdx, varIdx);
 	}
 	return true;

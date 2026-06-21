@@ -111,9 +111,6 @@ struct Program {
 	TermId getTerm(int mod, Decl decl);
 	TermId createTerm(int mod, Term term);
 
-	std::string mangleName(TermId id) const;
-	Prototype parseMangledName(std::string mangle) const;
-
 	// Prints the program contents for debugging
 	void print(TermId id) const;
 	void print(TypeId id) const;
