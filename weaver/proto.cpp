@@ -29,6 +29,8 @@ bool Typename::parse(std::string type) {
 	if (col != std::string::npos) {
 		name = type.substr(col+1);
 		mod = type.substr(0, col);
+	} else {
+		name = type;
 	}
 	return true;	
 }
