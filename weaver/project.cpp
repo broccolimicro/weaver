@@ -244,7 +244,6 @@ bool Project::load(Program &prgm) {
 
 bool Project::save(Program &prgm, TermId id) {
 	if (id.hasVar()) {
-		std::string modName = prgm.mods[id.mod].name;
 		const weaver::Variant &variant = prgm.varAt(id);
 
 		const Dialect *dialect = getDialect(variant.meta.dialect);
@@ -277,14 +276,14 @@ bool Project::save(Program &prgm, TermId id) {
 			string filename = "project." + filetype->ext;
 			filetype->write((emitDir / filename).string(), *this, *filetype, prgm, id);
 		} else if (filetype->level == Filetype::MODULE) {
-			fs::path emitDir = rootDir / BUILD / rootpathFromModule(modName);
+			fs::path emitDir = rootDir / BUILD / rootpathFromModule(prgm.mods[id.mod].name);
 			std::filesystem::create_directories(emitDir.string());
 
 			string filename = "module." + filetype->ext;
 			filetype->write((emitDir / filename).string(), *this, *filetype, prgm, id);
 
 		} else {
-			fs::path emitDir = rootDir / BUILD / rootpathFromModule(modName);
+			fs::path emitDir = rootDir / BUILD / rootpathFromModule(prgm.mods[id.mod].name);
 			std::filesystem::create_directories(emitDir.string());
 
 			string filename = prgm.getPrototype(id).mangle(false) + "." + filetype->ext;

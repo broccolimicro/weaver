@@ -56,7 +56,7 @@ struct Filetype {
 
 struct Dialect {
 	typedef std::any (*Load)(string name, const parse::syntax*, tokenizer*);
-	typedef std::vector<TermId> (*Link)(const Project &, const Program &, const Variant &);
+	typedef std::vector<Prototype> (*Link)(const Project &, const Program &, TermId);
 
 	string name;
 
