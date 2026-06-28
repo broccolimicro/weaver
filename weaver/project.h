@@ -37,7 +37,6 @@ struct Filetype {
 
 	string dialect;
 	string ext;
-	string build;
 
 	Parser read;
 	Loader load;
@@ -51,7 +50,7 @@ struct Filetype {
 	ConsolidationLevel level;
 
 	Filetype();
-	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write, ConsolidationLevel level=TERM);
+	Filetype(string dialect, string ext, Parser read, Loader load, Writer write, ConsolidationLevel level=TERM);
 	~Filetype();
 };
 
@@ -129,7 +128,7 @@ struct Project : parse::registry {
 	Tech tech;
 
 	bool pushDialect(string dialect, const parse::factory *parse, Dialect::Load load, Dialect::Link link);
-	bool pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, Filetype::ConsolidationLevel level=Filetype::TERM);
+	bool pushFiletype(string dialect, string ext, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, Filetype::ConsolidationLevel level=Filetype::TERM);
 	const Filetype *getFiletype(string ext) const;
 	Filetype *getFiletype(string ext);
 	const Dialect *getDialect(string dialect) const;

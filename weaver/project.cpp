@@ -12,10 +12,9 @@ Filetype::Filetype() {
 	level = TERM;
 }
 
-Filetype::Filetype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, ConsolidationLevel level) {
+Filetype::Filetype(string dialect, string ext, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, ConsolidationLevel level) {
 	this->dialect = dialect;
 	this->ext = ext;
-	this->build = build;
 	this->read = read;
 	this->load = load;
 	this->write = write;
@@ -72,9 +71,9 @@ bool Project::pushDialect(string dialect, const parse::factory *parse, Dialect::
 	return dialects.insert({dialect, Dialect(dialect, parse, load, link)}).second;
 }
 
-bool Project::pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, Filetype::ConsolidationLevel level) {
+bool Project::pushFiletype(string dialect, string ext, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, Filetype::ConsolidationLevel level) {
 	// Register a new dialect with the given name and factory function
-	auto result = filetypes.insert({ext, Filetype(dialect, ext, build, read, load, write, level)});
+	auto result = filetypes.insert({ext, Filetype(dialect, ext, read, load, write, level)});
 	if (not result.second) {
 		return false;
 	}
