@@ -40,19 +40,22 @@ int Module::findType(string name) const {
 	return -1;
 }
 
-vector<int> Module::findTerms(Decl decl) const {
+vector<int> Module::findTerms(Decl decl, bool qualified) const {
 	vector<int> result;
 	for (int i = 0; i < (int)terms.size(); i++) {
 		if (terms[i].decl.recv == decl.recv
 			and terms[i].decl.name == decl.name
-			and terms[i].decl.args.size() == decl.args.size()) {
-			bool found = true;
-			for (int j = 0; j < (int)decl.args.size() and found; j++) {
-				found = (decl.args[j].type == terms[i].decl.args[j].type);
+			and (not qualified or terms[i].decl.args.size() == decl.args.size())) {
+			if (qualified) {
+				bool found = true;
+				for (int j = 0; j < (int)decl.args.size() and found; j++) {
+					found = (decl.args[j].type == terms[i].decl.args[j].type);
+				}
+				if (not found) {
+					continue;
+				}
 			}
-			if (found) {
-				result.push_back(i);
-			}
+			result.push_back(i);
 		}
 	}
 	return result;
@@ -155,13 +158,13 @@ vector<TermId> Program::findTerms(Prototype proto, int index) const {
 	if (proto.mod.empty()) {
 		// Then this is in the global namespace
 		if (global >= 0) {
-			for (int term : mods[global].findTerms(findDecl(proto))) {
+			for (int term : mods[global].findTerms(findDecl(proto), proto.qualified)) {
 				result.push_back(TermId(global, term));
 			}
 		}
 
 		if (result.empty() and index >= 0) {
-			for (int term : mods[index].findTerms(findDecl(proto))) {
+			for (int term : mods[index].findTerms(findDecl(proto), proto.qualified)) {
 				result.push_back(TermId(index, term));
 			}
 		}
@@ -170,7 +173,7 @@ vector<TermId> Program::findTerms(Prototype proto, int index) const {
 
 	index = findModule(proto.mod);
 	if (index >= 0) {
-		for (int term : mods[index].findTerms(findDecl(proto))) {
+		for (int term : mods[index].findTerms(findDecl(proto), proto.qualified)) {
 			result.push_back(TermId(index, term));
 		}
 	}
@@ -184,7 +187,7 @@ TermId Program::getTerm(Prototype proto, int index) {
 		int mod = getModule(proto.mod);
 		vector<weaver::Instance> args;
 		weaver::TypeId recv;
-		if (not proto.unqualified) {
+		if (proto.qualified) {
 			// TODO(edward.bingham) add variable names by looking at ports
 			for (auto arg = proto.args.begin(); arg != proto.args.end(); arg++) {
 				args.push_back(findInstance(*arg, "", mod));
@@ -226,7 +229,7 @@ Prototype Program::getPrototype(const Decl &decl, std::string mod) const {
 	for (auto i = decl.args.begin(); i != decl.args.end(); i++) {
 		result.args.push_back(getTypename(*i));
 	}
-	result.unqualified = false;
+	result.qualified = true;
 	result.hashArgs();
 	return result; 
 }

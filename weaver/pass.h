@@ -27,35 +27,33 @@ struct Target {
 
 struct Predicate {
 	std::string dialect;
-	boolean::cover expr;
+	std::vector<pair<std::string, bool> > props;
+
+	bool eval(const Metadata &meta);
 };
 
 struct PassManager;
 
 // constrains design space, creates new variant
-struct ReducePass {
-	typedef bool (*Func)(const PassManager&, Program&, const Term &, const Variant&, Variant&);
+struct Pass {
+	typedef bool (*ReadyFunc)(const PassManager&, const Program&, TermId id, std::vector<TermId> &watch); 
+	typedef bool (*ExecFunc)(const PassManager&, Program&, TermId id);
 
+	ReadyFunc ready;
+	ExecFunc exec;
+
+	// the target term must satisfy this predicate
 	Predicate guard;
-	boolean::cover depend;
 
-	std::string dialect;
-	boolean::cube action;
-};
+	// all instances in the target term must satisfy this predicate
+	Predicate depend;
 
-// no effect on design space, modifies variant
-struct RotatePass {
-	typedef bool (*Func)(const PassManager&, Program&, const Term&, Variant&);
-
-	Predicate guard;
-	boolean::cover depend;
-
-	boolean::cube action;
+	Predicate action;
 };
 
 struct State {
 	std::string dialect;
-	boolean::cube props;
+	std::vector<std::string> props;
 };
 
 typedef std::vector<State> TermState;
@@ -76,10 +74,12 @@ struct PassManager {
 	const Project *proj;
 	const Target *target;
 	Program *prgm;
-	std::vector<string> props;
 
-	std::vector<ReducePass> reductions;
-	std::vector<RotatePass> rotations;
+	// constrains design space, creates new variant
+	std::vector<Pass> reductions;
+
+	// no effect on design space, modifies variant, planned to get to next Target
+	std::vector<Pass> rotations;
 
 	PassManager();
 	~PassManager();

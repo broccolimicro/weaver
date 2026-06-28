@@ -29,7 +29,7 @@ struct Prototype {
 	std::string recv;
 	std::vector<Typename> args;
 	size_t argsHash;
-	bool unqualified;
+	bool qualified;
 
 	int variant;
 

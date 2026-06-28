@@ -38,7 +38,7 @@ struct Module {
 	int findType(string name) const;
 
 	// Finds a term by its prototype declaration
-	vector<int> findTerms(Decl decl) const;
+	vector<int> findTerms(Decl decl, bool qualified=true) const;
 
 	// Prints the module contents for debugging
 	void print() const;

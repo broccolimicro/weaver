@@ -48,7 +48,7 @@ std::string Typename::to_string() const {
 }
 
 Prototype::Prototype() {
-	unqualified = true;
+	qualified = false;
 	variant = -1;
 	argsHash = 0;
 }
@@ -63,7 +63,7 @@ Prototype::~Prototype() {
 }
 
 bool Prototype::parse(std::string proto) {
-	unqualified = true;
+	qualified = false;
 
 	size_t at = proto.rfind("@");
 	if (at != std::string::npos) {
@@ -74,7 +74,7 @@ bool Prototype::parse(std::string proto) {
 
 	size_t par = proto.rfind("(");
 	if (par != std::string::npos) {
-		unqualified = false;
+		qualified = true;
 		std::string argStr = proto.substr(par+1, proto.size()-par-2);
 		proto = proto.substr(0, par);
 
@@ -94,7 +94,7 @@ bool Prototype::parse(std::string proto) {
 			}
 		}
 	}
-	if (not unqualified) {
+	if (qualified) {
 		hashArgs();
 	}
 
@@ -124,12 +124,12 @@ std::string Prototype::to_string() const {
 		if (not result.empty()) {
 			result += ".";
 		}
-		if (not unqualified and not recv.empty()) {
+		if (qualified and not recv.empty()) {
 			result += recv + "::";
 		}
 
 		result += name;
-		if (not unqualified) {
+		if (qualified) {
 			result += "(";
 			for (int i = 0; i < (int)args.size(); i++) {
 				if (i != 0) {
@@ -182,11 +182,17 @@ std::string Prototype::mangle(bool useMod) const {
 		result += recv + "-";
 	}
 	result += name + "-" + encodeBase32(getHash());
-	return result;
+	return "wv:" + result;
 }
 
 Prototype Prototype::fromMangled(std::string mangle) {
 	Prototype result;
+	if (mangle.rfind("wv:", 0) != 0) {
+		result.name = mangle;
+		return result;
+	}
+
+	mangle = mangle.substr(3);
 
 	// drop the hashed argument list
 	size_t pos = mangle.find_last_of('-');

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <parse/parse.h>
+#include <parse/factory.h>
 #include <weaver/program.h>
 #include <weaver/proto.h>
 
@@ -12,6 +12,7 @@ namespace weaver {
 
 struct Project;
 struct Filetype;
+struct Dialect;
 
 struct Depend {
 	string path;
@@ -32,13 +33,11 @@ struct Filetype {
 	// Project &proj, Program &prgm, string path, parse::syntax *syntax, std::any data
 	typedef void (*Loader)(Project &, Program &, const Source &);
 	// Program &prgm, int modIdx, int termIdx
-	typedef void (*Writer)(fs::path, Project &, const Filetype &, const Program &, int, int, int);
+	typedef void (*Writer)(fs::path, Project &, const Filetype &, const Program &, TermId id);
 
 	string dialect;
 	string ext;
 	string build;
-
-	std::any data;
 
 	Parser read;
 	Loader load;
@@ -52,18 +51,34 @@ struct Filetype {
 	ConsolidationLevel level;
 
 	Filetype();
-	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write, ConsolidationLevel level=TERM, std::any data = std::any());
+	Filetype(string dialect, string ext, string build, Parser read, Loader load, Writer write, ConsolidationLevel level=TERM);
 	~Filetype();
+};
 
-	template <typename T>
-	const T *as() const {
-		return std::any_cast<T>(&data);
-	}
+struct Dialect {
+	typedef std::any (*Load)(string name, const parse::syntax*, tokenizer*);
+	typedef std::vector<TermId> (*Link)(const Project &, const Program &, const Variant &);
 
-	template <typename T>
-	T *as() {
-		return std::any_cast<T>(&data);
-	}
+	string name;
+
+	// filetypes (extension name) that directly support this dialect
+	std::vector<std::string> filetypes;
+
+	// DESIGN(edward.bingham) the default parser for a given dialect may not be
+	// supported by a fully independent filetype, otherwise we'd just reference
+	// that filetype instead of have parse() and load() in the dialect
+
+	// parser
+	const parse::factory *parse;
+
+	// interpreter
+	Load load;
+
+	// compiler
+	Link link;
+
+	Dialect(std::string name, const parse::factory *parse, Load load, Link link);
+	~Dialect();
 };
 
 struct Tech {
@@ -84,7 +99,7 @@ struct Tech {
 	}
 };
 
-struct Project {
+struct Project : parse::registry {
 	Project(fs::path root="");
 	~Project();
 
@@ -92,7 +107,7 @@ struct Project {
 	static constexpr string BUILD = "build";
 	static constexpr string VENDOR = "vendor";
 	static constexpr string SOURCE = "src";
-	
+
 	vector<fs::path> includePath;
 
 	fs::path workDir;
@@ -105,21 +120,29 @@ struct Project {
 	vector<fs::path> imports;
 	vector<Source> sources;
 
-	vector<Filetype> filetypes;
+	// indexed by extension
+	std::map<std::string, Filetype> filetypes;
+
+	// indexed by dialect name
+	std::map<std::string, Dialect> dialects;
 
 	Tech tech;
 
-	int pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, Filetype::ConsolidationLevel level=Filetype::TERM, std::any data=std::any());	
-	const Filetype *getExtension(string ext) const;
-	std::vector<const Filetype *> getDialect(string dialect) const;
+	bool pushDialect(string dialect, const parse::factory *parse, Dialect::Load load, Dialect::Link link);
+	bool pushFiletype(string dialect, string ext, string build, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, Filetype::ConsolidationLevel level=Filetype::TERM);
+	const Filetype *getFiletype(string ext) const;
+	Filetype *getFiletype(string ext);
+	const Dialect *getDialect(string dialect) const;
+	Dialect *getDialect(string dialect);
+
+	const parse::factory *getParser(string dialect) const override;
+	std::vector<std::string> getParserIndex() const override;
 
 	bool incl(std::string uri);
 	bool read(Program &prgm, fs::path path);
 	bool load(Program &prgm);
 
-	bool save(Program &prgm, int modIdx, int termIdx, int varIdx);
-	void save(Program &prgm, int modIdx, int termIdx);
-	void save(Program &prgm);
+	bool save(Program &prgm, TermId id=TermId());
 
 	void setTech(string cmd);
 	void setTechLib(string path);
