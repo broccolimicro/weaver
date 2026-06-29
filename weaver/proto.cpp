@@ -6,6 +6,8 @@
 
 namespace weaver {
 
+const std::string label = "wv-";
+
 Typename::Typename() {
 }
 
@@ -182,12 +184,12 @@ std::string Prototype::mangle(bool useMod) const {
 		result += recv + "-";
 	}
 	result += name + "-" + encodeBase32(getHash());
-	return "wv:" + result;
+	return label + result;
 }
 
 Prototype Prototype::fromMangled(std::string mangle) {
 	Prototype result;
-	if (mangle.rfind("wv:", 0) != 0) {
+	if (mangle.rfind(label, 0) != 0) {
 		result.name = mangle;
 		return result;
 	}
