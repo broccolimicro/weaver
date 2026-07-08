@@ -24,11 +24,13 @@ Filetype::Filetype(string dialect, string ext, Filetype::Parser read, Filetype::
 Filetype::~Filetype() {
 }
 
-Dialect::Dialect(std::string name, const parse::factory *parse, Load load, Link link) {
+Dialect::Dialect(std::string name, parse::factory parse, Load load, Link link, void *data) : parse(parse) {
 	this->name = name;
-	this->parse = parse;
 	this->load = load;
 	this->link = link;
+	if (data != nullptr) {
+		this->parse.data = data;
+	}
 }
 
 Dialect::~Dialect() {
@@ -67,8 +69,8 @@ Project::Project(fs::path root) {
 Project::~Project() {
 }
 
-bool Project::pushDialect(string dialect, const parse::factory *parse, Dialect::Load load, Dialect::Link link) {
-	return dialects.insert({dialect, Dialect(dialect, parse, load, link)}).second;
+bool Project::pushDialect(string dialect, parse::factory parse, Dialect::Load load, Dialect::Link link, void *data) {
+	return dialects.insert({dialect, Dialect(dialect, parse, load, link, data)}).second;
 }
 
 bool Project::pushFiletype(string dialect, string ext, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write, Filetype::ConsolidationLevel level) {
@@ -121,13 +123,13 @@ const parse::factory *Project::getParser(string dialect) const {
 	if (ref == nullptr) {
 		return nullptr;
 	}
-	return ref->parse;
+	return &ref->parse;
 }
 
 std::vector<std::string> Project::getParserIndex() const {
 	std::vector<std::string> result;
 	for (auto i = dialects.begin(); i != dialects.end(); i++) {
-		if (i->second.parse != nullptr) {
+		if (i->second.parse) {
 			result.push_back(i->first);
 		}
 	}
