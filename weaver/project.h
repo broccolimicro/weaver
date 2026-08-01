@@ -76,7 +76,7 @@ struct Dialect {
 	// compiler
 	Link link;
 
-	Dialect(std::string name, parse::factory parse, Load load, Link link, void *data=nullptr);
+	Dialect(std::string name, parse::factory parse, Load load, Link link, std::any data={});
 	~Dialect();
 };
 
@@ -127,7 +127,7 @@ struct Project : parse::registry {
 
 	Tech tech;
 
-	bool pushDialect(string dialect, parse::factory parse, Dialect::Load load, Dialect::Link link, void *data=nullptr);
+	bool pushDialect(string dialect, parse::factory parse, Dialect::Load load, Dialect::Link link, std::any data={});
 	bool pushFiletype(string dialect, string ext, Filetype::Parser read, Filetype::Loader load, Filetype::Writer write=nullptr, Filetype::ConsolidationLevel level=Filetype::TERM);
 	const Filetype *getFiletype(string ext) const;
 	Filetype *getFiletype(string ext);

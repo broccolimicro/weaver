@@ -24,13 +24,11 @@ Filetype::Filetype(string dialect, string ext, Filetype::Parser read, Filetype::
 Filetype::~Filetype() {
 }
 
-Dialect::Dialect(std::string name, parse::factory parse, Load load, Link link, void *data) : parse(parse) {
+Dialect::Dialect(std::string name, parse::factory parse, Load load, Link link, std::any data) : parse(parse) {
 	this->name = name;
 	this->load = load;
 	this->link = link;
-	if (data != nullptr) {
-		this->parse.data = data;
-	}
+	this->parse.data = data;
 }
 
 Dialect::~Dialect() {
@@ -69,7 +67,7 @@ Project::Project(fs::path root) {
 Project::~Project() {
 }
 
-bool Project::pushDialect(string dialect, parse::factory parse, Dialect::Load load, Dialect::Link link, void *data) {
+bool Project::pushDialect(string dialect, parse::factory parse, Dialect::Load load, Dialect::Link link, std::any data) {
 	return dialects.insert({dialect, Dialect(dialect, parse, load, link, data)}).second;
 }
 
@@ -129,7 +127,7 @@ const parse::factory *Project::getParser(string dialect) const {
 std::vector<std::string> Project::getParserIndex() const {
 	std::vector<std::string> result;
 	for (auto i = dialects.begin(); i != dialects.end(); i++) {
-		if (i->second.parse) {
+		if (not i->second.parse.empty()) {
 			result.push_back(i->first);
 		}
 	}
