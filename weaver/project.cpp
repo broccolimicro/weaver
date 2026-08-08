@@ -51,6 +51,10 @@ Project::Project(fs::path root) {
 		rootDir = rootDir.parent_path();
 	}
 
+	if (not hasMod()) {
+		rootDir = workDir;
+	}
+
 	includePath.push_back(rootDir / SOURCE);
 	includePath.push_back(rootDir / VENDOR);
 	includePath.push_back(rootDir / BUILD);
@@ -477,7 +481,7 @@ vector<string> Project::listTech() const {
 }
 
 bool Project::hasMod() const {
-	return not rootDir.empty() and rootDir.parent_path() != rootDir;
+	return not rootDir.empty() and fs::exists(rootDir / "lm.mod");
 }
 
 void Project::vendor() const {
