@@ -88,11 +88,15 @@ struct Decl {
 	vector<Instance> args; // Arguments to the function/method/process
 	TypeId ret;            // Return type, or invalid TypeId if none
 
+	bool qualified;
+	bool hashed;
+	size_t argsHash;
+
 	// Prints the declaration details for debugging
 	void print() const;
 };
 
-// Equality comparison for declarations
+// checks recv, name, and args, ignores ret
 bool operator==(const Decl &d0, const Decl &d1);
 
 }

@@ -5,11 +5,13 @@ namespace weaver {
 Variant::Variant(Metadata meta, std::any def, int super) : meta(meta) {
 	this->super = super;
 	this->def = def;
+	this->fromSource = false;
 }
 
 Variant::Variant(std::string dialect, std::any def, int super) : meta(dialect) {
 	this->super = super;
 	this->def = def;
+	this->fromSource = false;
 }
 
 Variant::~Variant() {

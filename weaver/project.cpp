@@ -1,7 +1,9 @@
 #include "project.h"
 
+#include <common/message.h>
 #include <common/text.h>
 #include <filesystem>
+#include <set>
 
 namespace weaver {
 
@@ -51,6 +53,7 @@ Project::Project(fs::path root) {
 
 	includePath.push_back(rootDir / SOURCE);
 	includePath.push_back(rootDir / VENDOR);
+	includePath.push_back(rootDir / BUILD);
 
 	char *loom_tech = std::getenv("LOOM_TECH");
 	if (loom_tech != nullptr) {
@@ -134,31 +137,68 @@ std::vector<std::string> Project::getParserIndex() const {
 	return result;
 }
 
-
-bool Project::incl(std::string uri) {
-	fs::path path;
-	if (uri == modName) {
-		path = rootDir / "src";
-	} else if (uri.starts_with(modName + "/")) {
-		path = rootDir / "src" / uri.substr(modName.size()+1);
-	} else {
-		path = rootDir / "dep" / uri;
+bool Project::inclFile(std::string uri) {
+	fs::path path = uri;
+	if (path.empty()) {
+		path = workDir;
+	} else if (not path.is_absolute()) {
+		path = workDir / path;
 	}
 
+	// If it's in the source or vendor directories, we should treat it like a
+	// normal import of the project
+	fs::path srcPath = path.lexically_relative(rootDir / SOURCE);
+	if (not srcPath.is_absolute() and srcPath.begin()->string() != "..") {
+		std::string uri = modName;
+		if (not srcPath.empty() and srcPath != ".") {
+			uri = (fs::path(modName) / srcPath).string();
+		}
+
+		return incl(uri);
+	}
+
+	fs::path vendorPath = path.lexically_relative(rootDir / VENDOR);
+	if (not vendorPath.is_absolute() and not vendorPath.empty()
+		and vendorPath != "." and vendorPath.begin()->string() != "..") {
+		return incl(vendorPath.string());
+	}
+
+	// otherwise, just directly import the absolute path
 	if (not fs::exists(path)) {
-		cout << "error: import not found '" << uri << "'" << endl;
-		cout << "note: searched '" << path << "'" << endl;
+		error("", "import not found '" + uri + "'", __FILE__, __LINE__);
 		return false;
 	}
-
-	auto pos = find(imports.begin(), imports.end(), path);
-	if (pos == imports.end()) {
+	if (find(imports.begin(), imports.end(), path) == imports.end()) {
 		imports.push_back(path);
 	}
 	return true;
 }
 
-bool Project::read(Program &prgm, fs::path path) {
+bool Project::incl(std::string uri) {
+	fs::path path;
+	if (uri == modName) {
+		path = SOURCE;
+	} else if (uri.starts_with(modName+"/")) {
+		path = fs::path(SOURCE) / uri.substr(modName.size()+1);
+	} else {
+		path = fs::path(VENDOR) / uri;
+	}
+
+	// then include the source path 
+	fs::path srcPath = rootDir / path;
+	if (fs::exists(srcPath)) {
+		if (find(imports.begin(), imports.end(), srcPath) == imports.end()) {
+			imports.push_back(srcPath);
+		}
+		return true;
+	}
+
+	error("", "import not found '" + uri + "'", __FILE__, __LINE__);
+	note("", "searched '" + srcPath.string() + "'", __FILE__, __LINE__);
+	return false;
+}
+
+bool Project::read(Program &prgm, fs::path path, bool isSource) {
 	if (not fs::exists(path)) {
 		return false;
 	}
@@ -173,7 +213,7 @@ bool Project::read(Program &prgm, fs::path path) {
 				ext = ext.substr(1);
 			}
 			auto filetype = getFiletype(ext);
-			if (filetype != nullptr and not read(prgm, entry.path())) {
+			if (filetype != nullptr and not read(prgm, entry.path(), isSource)) {
 				return false;
 			}
 		}
@@ -186,18 +226,14 @@ bool Project::read(Program &prgm, fs::path path) {
 	}
 	auto filetype = getFiletype(ext);
 	if (filetype == nullptr) {
-		printf("error: unrecognized filetype '%s'\n", ext.c_str());
+		error("", "unrecognized filetype '" + ext + "'", __FILE__, __LINE__);
 		return false;
 	}
 
-	fs::path canon = path;
-	if (not canon.is_absolute()) {
-		canon = workDir / canon;
-	}
-
 	sources.push_back(Source());
-	sources.back().path = fs::relative(canon, workDir);
-	sources.back().modName = pathToModule(canon);
+	sources.back().path = fs::relative(path, workDir);
+	sources.back().isSource = isSource;
+	sources.back().modName = pathToModule(path);
 	sources.back().filetype = filetype;
 	sources.back().tokens = shared_ptr<tokenizer>(new tokenizer());
 
@@ -206,7 +242,7 @@ bool Project::read(Program &prgm, fs::path path) {
 		string pathstr = path.string();
 		fin.open(pathstr.c_str(), ios::binary | ios::in);
 		if (not fin.is_open()) {
-			printf("error: file not found '%s'\n", pathstr.c_str());
+			error("", "file not found '" + pathstr + "'", __FILE__, __LINE__);
 			return false;
 		}
 
@@ -226,17 +262,51 @@ bool Project::load(Program &prgm) {
 	// TODO(edward.bingham) this is still wrong, we have to create a DAG and walk the DAG backwards from the leaves...
 
 	for (int i = 0; i < (int)imports.size(); i++) {
-		if (not read(prgm, imports[i])) {
-			cout << "error: failed to read '" << imports[i] << "'" << endl;
+		if (not read(prgm, imports[i], true)) {
+			error("", "failed to read '" + imports[i].string() + "'", __FILE__, __LINE__);
 			return false;
 		}
 	}
 
+	std::set<fs::path> buildImports;
 	while (not sources.empty()) {
+		std::vector<weaver::TermId> loaded;
 		if (sources.back().filetype->load != nullptr) {
-			sources.back().filetype->load(*this, prgm, sources.back());
+			loaded = sources.back().filetype->load(*this, prgm, sources.back());
 		}
 		sources.pop_back();
+
+		for (auto i : loaded) {
+			Prototype proto = prgm.getPrototype(i);
+			std::string mangle = proto.mangle(false);
+
+			fs::path modPath = rootDir / BUILD / rootpathFromModule(prgm.mods[i.mod].name);
+			fs::path projPath = rootDir / BUILD / rootpathFromModule(modName);
+			for (const auto &ext : filetypes) {
+				if (ext.second.load == nullptr) {
+					continue;
+				}
+
+				fs::path searchPath;
+				if (ext.second.level == Filetype::TERM) {
+					searchPath = modPath / (mangle + "." + ext.first);
+				} else if (ext.second.level == Filetype::MODULE) {
+					searchPath = modPath / ("module." + ext.first);
+				} else if (ext.second.level == Filetype::PROJECT) {
+					searchPath = projPath / ("project." + ext.first);
+				} else {
+					continue;
+				}
+
+				if (fs::exists(searchPath)) {
+					if (buildImports.insert(searchPath).second) {
+						if (not read(prgm, searchPath, false)) {
+							warning("", "failed to read '" + searchPath.string() + "'", __FILE__, __LINE__);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	return true;
@@ -245,6 +315,9 @@ bool Project::load(Program &prgm) {
 bool Project::save(Program &prgm, TermId id) {
 	if (id.hasVar()) {
 		const weaver::Variant &variant = prgm.varAt(id);
+		if (variant.fromSource) {
+			return false;
+		}
 
 		const Dialect *dialect = getDialect(variant.meta.dialect);
 		if (dialect == nullptr) {
@@ -261,12 +334,6 @@ bool Project::save(Program &prgm, TermId id) {
 
 		if (filetype == nullptr or filetype->write == nullptr) {
 			return false;
-		}
-
-		// TODO(edward.bingham) delete this
-		if (dialect->name == "layout") {
-			string proto = prgm.getPrototype(id).to_string();
-			printf("saving %s(%d %d %d)\n", proto.c_str(), id.mod, id.index, id.var);
 		}
 
 		if (filetype->level == Filetype::PROJECT) {
@@ -316,7 +383,7 @@ bool Project::save(Program &prgm, TermId id) {
 			}
 
 			if (var.meta.dialect.empty()) {
-				printf("internal:%s:%d: dialect not defined for term '%s'\n", __FILE__, __LINE__, term.decl.name.c_str());
+				internal("", "dialect not defined for term '" + term.decl.name + "'", __FILE__, __LINE__);
 				continue;
 			}
 
@@ -441,31 +508,41 @@ string Project::pathToModule(fs::path path) const {
 	if (not fs::is_directory(path)) {
 		path = path.parent_path();
 	}
+	if (path.empty()) {
+		path = workDir;
+	} else if (not path.is_absolute()) {
+		path = workDir / path;
+	}
 
 	fs::path dirInModule = fs::relative(path, rootDir).lexically_normal();
 	std::string top = topDir(dirInModule);
+	if (top == BUILD) {
+		dirInModule = popTopDir(dirInModule);
+		top = topDir(dirInModule);
+	}
+	
 	if (top == ".") {
 		return fs::path(modName).string();
-	} else if (top == "src") {
+	} else if (top == SOURCE) {
 		dirInModule = popTopDir(dirInModule);
 		if (dirInModule.empty()) {
 			return fs::path(modName).string();
 		}
 		return (fs::path(modName) / dirInModule).string();
-	} else if (top == "dep") {
+	} else if (top == VENDOR) {
 		// TODO(edward.bingham) parse the lm.mod file in the vendor directory
 		return popTopDir(dirInModule);
 	}
-	return "";
+	return dirInModule;
 }
 
 fs::path Project::pathFromModule(string mod) const {
 	if (mod == modName) {
-		return rootDir / "src";
+		return rootDir / SOURCE;
 	} else if (mod.rfind(modName+"/", 0) == 0) {
-		return rootDir / "src" / mod.substr(modName.size()+1);
+		return rootDir / SOURCE / mod.substr(modName.size()+1);
 	}
-	return rootDir / "dep" / mod;
+	return rootDir / VENDOR / mod;
 }
 
 fs::path Project::relpathFromModule(string mod) const {

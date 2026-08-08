@@ -21,6 +21,7 @@ struct Depend {
 
 struct Source {
 	fs::path path;
+	bool isSource;
 	string modName;
 	shared_ptr<parse::syntax> syntax;
 	shared_ptr<tokenizer> tokens;
@@ -31,7 +32,7 @@ struct Filetype {
 	// Project &proj, string path, string buffer, std::any data
 	typedef void (*Parser)(Project &, Source &, string);
 	// Project &proj, Program &prgm, string path, parse::syntax *syntax, std::any data
-	typedef void (*Loader)(Project &, Program &, const Source &);
+	typedef vector<TermId> (*Loader)(Project &, Program &, const Source &);
 	// Program &prgm, int modIdx, int termIdx
 	typedef void (*Writer)(fs::path, Project &, const Filetype &, const Program &, TermId id);
 
@@ -104,7 +105,7 @@ struct Project : parse::registry {
 
 	static constexpr string DEBUG = "debug";
 	static constexpr string BUILD = "build";
-	static constexpr string VENDOR = "vendor";
+	static constexpr string VENDOR = "dep";
 	static constexpr string SOURCE = "src";
 
 	vector<fs::path> includePath;
@@ -137,8 +138,9 @@ struct Project : parse::registry {
 	const parse::factory *getParser(string dialect) const override;
 	std::vector<std::string> getParserIndex() const override;
 
+	bool inclFile(std::string uri);
 	bool incl(std::string uri);
-	bool read(Program &prgm, fs::path path);
+	bool read(Program &prgm, fs::path path, bool isSource=true);
 	bool load(Program &prgm);
 
 	bool save(Program &prgm, TermId id=TermId());

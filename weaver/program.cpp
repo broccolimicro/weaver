@@ -13,9 +13,12 @@ int Module::getTerm(Decl decl) {
 	vector<int> ids = findTerms(decl);
 	if (ids.empty()) {
 		ids.push_back(createTerm(decl));
-	}
-	if (ids.size() > 1) {
+	} else if (ids.size() > 1u) {
 		warning("", "ambiguous term names", __FILE__, __LINE__);
+	}
+
+	if (not terms[ids[0]].decl.qualified and decl.qualified) {
+		terms[ids[0]].decl = decl;
 	}
 
 	return ids[0];
@@ -40,21 +43,10 @@ int Module::findType(string name) const {
 	return -1;
 }
 
-vector<int> Module::findTerms(Decl decl, bool qualified) const {
+vector<int> Module::findTerms(Decl decl) const {
 	vector<int> result;
 	for (int i = 0; i < (int)terms.size(); i++) {
-		if (terms[i].decl.recv == decl.recv
-			and terms[i].decl.name == decl.name
-			and (not qualified or terms[i].decl.args.size() == decl.args.size())) {
-			if (qualified) {
-				bool found = true;
-				for (int j = 0; j < (int)decl.args.size() and found; j++) {
-					found = (decl.args[j].type == terms[i].decl.args[j].type);
-				}
-				if (not found) {
-					continue;
-				}
-			}
+		if (terms[i].decl == decl) {
 			result.push_back(i);
 		}
 	}
@@ -105,7 +97,7 @@ int Program::getModule(string name) {
 
 TypeId Program::findType(string mod, string name, int index) const {
 	if (name.empty()) {
-		return TypeId();
+		return TypeId(index, -1);
 	}
 
 	if (mod.empty()) {
@@ -140,11 +132,58 @@ Instance Program::findInstance(Typename type, string name, int index) const {
 }
 
 Decl Program::findDecl(Prototype proto, int index) const {
+	if (proto.qualified and not proto.hashed) {
+		proto.hashArgs();
+	}
+
 	Decl result;
+	if (not proto.mod.empty()) {
+		index = findModule(proto.mod);
+	}
+
 	result.name = proto.name;
-	result.recv = findType(proto.mod, proto.recv, index);
-	for (auto i = proto.args.begin(); i != proto.args.end(); i++) {
-		result.args.push_back(findInstance(*i, "", index));
+	if (not proto.recv.empty()) {
+		result.recv = findType(proto.mod, proto.recv, index);
+	} else if (not proto.mod.empty()) {
+		result.recv.mod = index;
+	}
+	result.argsHash = proto.argsHash;
+	result.qualified = proto.qualified;
+	result.hashed = proto.hashed;
+	for (const auto &arg : proto.args) {
+		result.args.push_back(findInstance(arg, "", index));
+	}
+	return result;
+}
+
+vector<TermId> Program::findTerms(std::string mod, Decl decl, int index) const {
+	if (decl.qualified and not decl.hashed) {
+		decl.argsHash = getArgsHash(decl);
+		decl.hashed = true;
+	}
+
+	vector<TermId> result;
+	if (mod.empty()) {
+		// Then this is in the global namespace
+		if (global >= 0) {
+			for (int term : mods[global].findTerms(decl)) {
+				result.push_back(TermId(global, term));
+			}
+		}
+
+		if (result.empty() and index >= 0) {
+			for (int term : mods[index].findTerms(decl)) {
+				result.push_back(TermId(index, term));
+			}
+		}
+		return result;
+	}
+
+	index = findModule(mod);
+	if (index >= 0) {
+		for (int term : mods[index].findTerms(decl)) {
+			result.push_back(TermId(index, term));
+		}
 	}
 	return result;
 }
@@ -155,54 +194,15 @@ vector<TermId> Program::findTerms(Prototype proto, int index) const {
 		return result;
 	}
 
-	if (proto.mod.empty()) {
-		// Then this is in the global namespace
-		if (global >= 0) {
-			for (int term : mods[global].findTerms(findDecl(proto), proto.qualified)) {
-				result.push_back(TermId(global, term));
-			}
-		}
-
-		if (result.empty() and index >= 0) {
-			for (int term : mods[index].findTerms(findDecl(proto), proto.qualified)) {
-				result.push_back(TermId(index, term));
-			}
-		}
-		return result;
-	}
-
-	index = findModule(proto.mod);
-	if (index >= 0) {
-		for (int term : mods[index].findTerms(findDecl(proto), proto.qualified)) {
-			result.push_back(TermId(index, term));
-		}
-	}
-	return result;
+	return findTerms(proto.mod, findDecl(proto), index);
 }
 
 TermId Program::getTerm(Prototype proto, int index) {
-	vector<weaver::TermId> ids = findTerms(proto, index);
-		
-	if (ids.empty()) {
-		int mod = getModule(proto.mod);
-		vector<weaver::Instance> args;
-		weaver::TypeId recv;
-		if (proto.qualified) {
-			// TODO(edward.bingham) add variable names by looking at ports
-			for (auto arg = proto.args.begin(); arg != proto.args.end(); arg++) {
-				args.push_back(findInstance(*arg, "", mod));
-			}
-			recv = findType("", proto.recv, mod);
-		}
-
-		int idx = mods[mod].createTerm(weaver::Term(proto.name, args, weaver::TypeId(), recv));
-		ids.push_back(weaver::TermId(mod, idx));
+	if (not proto.mod.empty()) {
+		index = getModule(proto.mod);
 	}
 
-	if (ids.size() > 1u) {
-		error("", "ambiguous process names", __FILE__, __LINE__);
-	}
-	return ids[0];
+	return getTerm(index, findDecl(proto, index));
 }
 
 Typename Program::getTypename(TypeId idx, std::vector<int> size) const {
@@ -229,8 +229,9 @@ Prototype Program::getPrototype(const Decl &decl, std::string mod) const {
 	for (auto i = decl.args.begin(); i != decl.args.end(); i++) {
 		result.args.push_back(getTypename(*i));
 	}
+	result.argsHash = getHash(result.args);
 	result.qualified = true;
-	result.hashArgs();
+	result.hashed = true;
 	return result; 
 }
 
@@ -326,11 +327,27 @@ Variant &Program::varAt(TermId idx) {
 	return mods[idx.mod].terms[idx.index].variants[idx.var];
 }
 
+size_t Program::getArgsHash(Decl decl) const {
+	std::vector<Typename> args;
+	for (auto i = decl.args.begin(); i != decl.args.end(); i++) {
+		args.push_back(getTypename(*i));
+	}
+	return getHash(args);
+}
+
 TermId Program::getTerm(int mod, Decl decl) {
+	if (decl.qualified and decl.argsHash == 0) {
+		decl.argsHash = getArgsHash(decl);
+		decl.hashed = true;
+	}
 	return TermId(mod, mods[mod].getTerm(decl));
 }
 
 TermId Program::createTerm(int mod, Term term) {
+	if (term.decl.qualified and term.decl.argsHash == 0) {
+		term.decl.argsHash = getArgsHash(term.decl);
+		term.decl.hashed = true;
+	}
 	return TermId(mod, mods[mod].createTerm(term));
 }
 
@@ -364,6 +381,7 @@ void Program::print(const Decl &decl) const {
 	}
 	printf(") ");
 	print(decl.ret);
+	printf(" hash=%zu", decl.argsHash);
 }
 
 void Program::print(const Instance &inst) const {

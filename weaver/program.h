@@ -38,7 +38,7 @@ struct Module {
 	int findType(string name) const;
 
 	// Finds a term by its prototype declaration
-	vector<int> findTerms(Decl decl, bool qualified=true) const;
+	vector<int> findTerms(Decl decl) const;
 
 	// Prints the module contents for debugging
 	void print() const;
@@ -72,6 +72,7 @@ struct Program {
 	Decl findDecl(Prototype proto, int index=-1) const;
 
 	// Find all terms that match this prototype
+	vector<TermId> findTerms(std::string mod, Decl decl, int index=-1) const;
 	vector<TermId> findTerms(Prototype proto, int index=-1) const;
 	TermId getTerm(Prototype proto, int index=-1);
 
@@ -108,6 +109,7 @@ struct Program {
 	Term &termAt(TermId idx);
 	Variant &varAt(TermId idx);
 
+	size_t getArgsHash(Decl decl) const;
 	TermId getTerm(int mod, Decl decl);
 	TermId createTerm(int mod, Term term);
 

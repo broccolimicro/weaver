@@ -1,5 +1,7 @@
 #include "instance.h"
 
+#include <common/message.h>
+
 namespace weaver {
 
 TypeId::TypeId() {
@@ -20,11 +22,11 @@ bool TypeId::defined() const {
 }
 
 bool operator==(TypeId t0, TypeId t1) {
-	return t0.mod == t1.mod and t0.index == t1.index;
+	return t0.index == t1.index and (t0.index < 0 or t0.mod == t1.mod);
 }
 
 bool operator!=(TypeId t0, TypeId t1) {
-	return t0.mod != t1.mod or t0.index != t1.index;
+	return t0.index != t1.index or (t0.index >= 0 and t1.index >= 0 and t0.mod != t1.mod);
 }
 
 bool operator<(TypeId t0, TypeId t1) {
@@ -126,6 +128,9 @@ bool operator>=(TermId t0, TermId t1) {
 }
 
 Decl::Decl() {
+	this->qualified = true;
+	this->hashed = false;
+	this->argsHash = 0;
 }
 
 Decl::Decl(string name, vector<Instance> args, TypeId ret, TypeId recv) {
@@ -133,6 +138,9 @@ Decl::Decl(string name, vector<Instance> args, TypeId ret, TypeId recv) {
 	this->args = args;
 	this->ret = ret;
 	this->recv = recv;
+	this->qualified = true;
+	this->hashed = false;
+	this->argsHash = 0;
 }
 
 Decl::~Decl() {
@@ -143,20 +151,29 @@ void Decl::print() const {
 	for (int i = 0; i < (int)args.size(); i++) {
 		args[i].print();
 	}
-	printf("} (%d,%d)\n", ret.mod, ret.index);
+	printf("} (%d,%d) hash=%zu\n", ret.mod, ret.index, argsHash);
 }
 
 bool operator==(const Decl &d0, const Decl &d1) {
-	if (d0.recv != d1.recv or d0.name != d1.name or d0.ret != d1.ret or d0.args.size() != d1.args.size()) {
+	if (d0.recv != d1.recv or d0.name != d1.name) {
 		return false;
 	}
 
-	for (int i = 0; i < (int)d0.args.size(); i++) {
-		if (not (d0.args[i] == d1.args[i])) {
+	if (d0.qualified and d1.qualified) {
+		if (d0.args.size() != d1.args.size()) {
 			return false;
 		}
-	}
 
+		for (int i = 0; i < (int)d0.args.size(); i++) {
+			if (not (d0.args[i] == d1.args[i])) {
+				return false;
+			}
+		}
+	} else if (not d0.hashed or not d1.hashed) {
+		internal("", "decl not hashed", __FILE__, __LINE__);
+	} else if (d0.argsHash != d1.argsHash) {
+		return false;
+	}
 	return true;
 }
 

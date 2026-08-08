@@ -49,15 +49,42 @@ std::string Typename::to_string() const {
 	return result;
 }
 
+bool operator==(const Typename &t0, const Typename &t1) {
+	if (t0.mod != t1.mod or t0.name != t1.name or t0.size.size() != t1.size.size()) {
+		return false;
+	}
+	for (int i = 0; i < (int)t0.size.size(); i++) {
+		if (t0.size[i] != t1.size[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+size_t getHash(const std::vector<Typename> &args) {
+	::hasher h;
+	int count = args.size();
+	h.put(&count);
+	for (const Typename &arg : args) {
+		h.put(arg.mod + "." + arg.name);
+		for (int sz : arg.size) {
+			h.put(&sz);
+		}
+	}
+	return h.get();
+}
+
 Prototype::Prototype() {
 	qualified = false;
+	hashed = false;
 	variant = -1;
 	argsHash = 0;
 }
 
-Prototype::Prototype(std::string proto) {
+Prototype::Prototype(std::string proto, std::string defaultMod) {
 	variant = -1;
 	argsHash = 0;
+	mod = defaultMod;
 	parse(proto);
 }
 
@@ -66,6 +93,7 @@ Prototype::~Prototype() {
 
 bool Prototype::parse(std::string proto) {
 	qualified = false;
+	hashed = false;
 
 	size_t at = proto.rfind("@");
 	if (at != std::string::npos) {
@@ -153,21 +181,9 @@ bool Prototype::empty() const {
 	return name.empty();
 }
 
-size_t Prototype::getHash() const {
-	::hasher h;
-	int count = args.size();
-	h.put(&count);
-	for (const Typename &arg : args) {
-		h.put(arg.mod + "." + arg.name);
-		for (int sz : arg.size) {
-			h.put(&sz);
-		}
-	}
-	return h.get();
-}
-
 void Prototype::hashArgs() {
-	argsHash = getHash();
+	argsHash = getHash(args);
+	hashed = true;
 }
 
 std::string Prototype::mangle(bool useMod) const {
@@ -183,12 +199,13 @@ std::string Prototype::mangle(bool useMod) const {
 	if (not recv.empty()) {
 		result += recv + "-";
 	}
-	result += name + "-" + encodeBase32(getHash());
+	result += name + "-" + encodeBase32(getHash(args));
 	return label + result;
 }
 
-Prototype Prototype::fromMangled(std::string mangle) {
+Prototype Prototype::fromMangled(std::string mangle, std::string defaultMod) {
 	Prototype result;
+	result.mod = defaultMod;
 	if (mangle.rfind(label, 0) != 0) {
 		result.name = mangle;
 		return result;
@@ -204,31 +221,59 @@ Prototype Prototype::fromMangled(std::string mangle) {
 	}
 
 	result.argsHash = decodeBase32(mangle.substr(pos+1));
+	result.hashed = true;
 	mangle = mangle.substr(0, pos);
 
 	// set the name
-	pos = mangle.find_last_of('-');
+	pos = mangle.find_last_of("-.");
 	if (pos == string::npos) {
 		result.name = mangle;
 		return result;
 	}
+	bool hasRecv = mangle[pos] == '-';
 
 	result.name = mangle.substr(pos+1);
 	mangle = mangle.substr(0, pos);
 
 	// set the receiver
-	pos = mangle.find_last_of('.');
-	if (pos == string::npos) {
-		result.recv = mangle;
-		return result;
-	}
+	if (hasRecv) {
+		pos = mangle.find_last_of('.');
+		if (pos == string::npos) {
+			result.recv = mangle;
+			return result;
+		}
 
-	result.recv = mangle.substr(pos+1);
-	mangle = mangle.substr(0, pos);
+		result.recv = mangle.substr(pos+1);
+		mangle = mangle.substr(0, pos);
+	}
 
 	// set the module
 	result.mod = mangle;
 	return result;
+}
+
+bool operator==(const Prototype &p0, const Prototype &p1) {
+	if (not p0.mod.empty() and not p1.mod.empty() and p0.mod != p1.mod) {
+		return false;
+	}
+
+	if (p0.recv != p1.recv) {
+		return false;
+	}
+
+	if (p0.qualified and p1.qualified) {
+		if (p0.args.size() != p1.args.size()) {
+			return false;
+		}
+		for (int i = 0; i < (int)p0.args.size(); i++) {
+			if (p0.args[i] != p1.args[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	return p0.hashed and p1.hashed and p0.argsHash == p1.argsHash;
 }
 
 }

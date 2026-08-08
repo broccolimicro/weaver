@@ -20,6 +20,7 @@ struct Variant {
 
 	int super; // variant this was derived from
 	std::vector<int> derived; // set of derived variants
+	bool fromSource;
 
 	Variant(Metadata meta, std::any def=std::any(), int super=-1);
 	Variant(std::string dialect, std::any def=std::any(), int super=-1);
