@@ -97,7 +97,7 @@ bool Prototype::parse(std::string proto) {
 
 	size_t at = proto.rfind("@");
 	if (at != std::string::npos) {
-		std::string argStr = proto.substr(at+1, proto.size()-at-2);
+		std::string argStr = proto.substr(at+1, proto.size()-at-1);
 		proto = proto.substr(0, at);
 		variant = std::stoi(argStr);
 	}
