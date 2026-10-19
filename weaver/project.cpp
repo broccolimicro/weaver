@@ -418,6 +418,21 @@ bool Project::save(Program &prgm, TermId id) {
 	return false;
 }
 
+bool isSubpath(fs::path a, fs::path b) {
+	const auto pathA = fs::weakly_canonical(a);
+	const auto pathB = fs::weakly_canonical(b);
+
+	auto itA = pathA.begin();
+	auto itB = pathB.begin();
+	for (; itB != pathB.end(); ++itA, ++itB) {
+		if (itA == pathA.end() or *itA != *itB) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void Project::setTech(string cmd) {
 	std::vector<std::string> args = splitArguments(cmd);
 	if (args.empty()) {
@@ -428,15 +443,19 @@ void Project::setTech(string cmd) {
 	args.erase(args.begin());
 
 	fs::path path;
-	if (name.size() >= 1u and name[0] == '/') {
-		path = name;
-		name = fs::relative(path, rootDir).lexically_normal().string();
-	} else if (name.size() >= 2u and name[0] == '.' and name[1] == '/') {
-		path = workDir / name.substr(2);
-		name = fs::relative(path, rootDir).lexically_normal().string();
-	} else if (name.size() >= 2u and name[0] == '/' and name[1] == '/') {
+	if (name.rfind("//", 0) == 0) {
 		path = rootDir / name.substr(2);
-		name = fs::relative(path, rootDir).lexically_normal().string();
+		name = "//" + fs::relative(path, rootDir).lexically_normal().string();
+	} else if (name.rfind("./", 0) == 0) {
+		path = workDir / name.substr(2);
+		name = "//" + fs::relative(path, rootDir).lexically_normal().string();
+	} else if (name.rfind("/", 0) == 0) {
+		path = name;
+		if (isSubpath(path, techDir)) {
+			name = fs::relative(path, techDir).lexically_normal().string();
+		} else {
+			name = "//" + fs::relative(path, rootDir).lexically_normal().string();
+		}
 	} else {
 		path = techDir / name;
 		name = fs::relative(path, techDir).lexically_normal().string();
@@ -543,6 +562,8 @@ string Project::pathToModule(fs::path path) const {
 fs::path Project::pathFromModule(string mod) const {
 	if (mod == modName) {
 		return rootDir / SOURCE;
+	} else if (mod.rfind("//", 0) == 0) {
+		return rootDir / mod.substr(2);
 	} else if (mod.rfind(modName+"/", 0) == 0) {
 		return rootDir / SOURCE / mod.substr(modName.size()+1);
 	}
